@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Bài học: 《春晚》Xuân Vãn</title>
+    <title>Bài học: 《春晚》Xuân Vãn (Đã sửa lỗi)</title>
     
     <style>
         /* Cài đặt cơ bản */
@@ -81,14 +81,21 @@
         #lesson-text p {
             font-size: 1.2em; /* Kích thước chữ to, dễ đọc */
             margin-bottom: 1.5em;
+            /* Xóa line-height cố định, để margin tự điều chỉnh 
+                khi bật/tắt pinyin/nghĩa
+            */
         }
 
+        /* *** THAY ĐỔI SỬA LỖI 1 ***
+            Thêm 'margin' và 'transition' cho .chunk
+        */
         .chunk {
             display: inline-block; /* Để Pinyin và nghĩa có thể định vị */
             position: relative;
             padding: 2px 0;
             cursor: default;
-            transition: background-color 0.2s;
+            transition: background-color 0.2s, margin 0.3s ease-in-out; /* Thêm margin vào transition */
+            margin: 0; /* Đặt margin cơ bản là 0 */
         }
 
         .chunk:hover {
@@ -132,6 +139,24 @@
         body.show-vietnamese .vietnamese {
             display: block;
         }
+        
+        /* *** THAY ĐỔI SỬA LỖI 2 ***
+            Thêm các quy tắc CSS mới này để tự động giãn dòng
+        */
+        body.show-pinyin .chunk {
+            margin-top: 1.6em; /* Thêm không gian BÊN TRÊN cho Pinyin */
+        }
+
+        body.show-vietnamese .chunk {
+            margin-bottom: 1.6em; /* Thêm không gian BÊN DƯỚI cho nghĩa */
+        }
+
+        /* Cập nhật cho cả hai trường hợp bật cùng lúc */
+        body.show-pinyin.show-vietnamese .chunk {
+            margin-top: 1.6em;
+            margin-bottom: 1.6em;
+        }
+
 
         /* Phần bài tập */
         #practice {
