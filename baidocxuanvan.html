@@ -69,18 +69,8 @@
             font-style: italic;
         }
 
-        /* ----- Cài đặt cho Tab ----- */
-        .tab-content {
-            display: none;
-        }
-        .tab-content.active {
-            display: block;
-        }
-        .tab-button.active {
-            border-color: #b91c1c;
-            color: #b91c1c;
-            font-weight: 700;
-        }
+        /* ----- CSS CHO TAB ĐÃ BỊ XÓA ----- */
+        /* Không cần CSS cho tab nữa */
         
         /* ----- Cài đặt cho Bài tập ----- */
         .quiz-option.correct {
@@ -90,6 +80,16 @@
         .quiz-option.incorrect {
             background-color: #fee2e2; /* Red 100 */
             border-color: #ef4444; /* Red 500 */
+        }
+
+        /* Thêm style cho input điền vào chỗ trống */
+        input[type="text"].correct {
+            background-color: #dcfce7;
+            border-color: #22c55e;
+        }
+         input[type="text"].incorrect {
+            background-color: #fee2e2;
+            border-color: #ef4444;
         }
         
         .matching-select.correct {
@@ -110,6 +110,36 @@
             border-radius: 4px;
             font-size: 0.95rem;
         }
+
+        /* Style cho phần luyện tập cấu trúc (Phần 6) */
+        .structure-example {
+            padding: 1rem;
+            border-radius: 0.5rem;
+        }
+        .structure-vi-zh {
+            background-color: #e0f2fe; /* blue-50 */
+            border: 1px solid #bae6fd; /* blue-200 */
+        }
+        .structure-vi-zh h5 {
+            color: #0369a1; /* blue-800 */
+        }
+        .structure-vi-zh .chinese-example {
+            color: #0284c7; /* blue-700 */
+            font-weight: 500;
+        }
+        
+        .structure-zh-vi {
+            background-color: #f0fdf4; /* green-50 */
+            border: 1px solid #bbf7d0; /* green-200 */
+        }
+        .structure-zh-vi h5 {
+            color: #166534; /* green-800 */
+        }
+         .structure-zh-vi .chinese-example {
+            color: #15803d; /* green-700 */
+            font-weight: 500;
+        }
+
     </style>
 </head>
 <body>
@@ -126,25 +156,16 @@
             <p class="text-lg text-gray-600 mt-2">Học tiếng Trung qua bài đọc về Gala Đêm Giao thừa</p>
         </header>
 
-        <!-- KHU VỰC CHUYỂN TAB -->
-        <nav class="flex justify-center border-b-2 border-gray-200 mb-8 space-x-4">
-            <button class="tab-button text-lg font-medium p-4 border-b-4 border-transparent hover:border-red-300 hover:text-red-600 transition-all active" onclick="showTab('bai-doc')">
-                📖 Bài đọc
-            </button>
-            <button class="tab-button text-lg font-medium p-4 border-b-4 border-transparent hover:border-red-300 hover:text-red-600 transition-all" onclick="showTab('bai-tap')">
-                ✏️ Bài luyện tập
-            </button>
-            <button class="tab-button text-lg font-medium p-4 border-b-4 border-transparent hover:border-red-300 hover:text-red-600 transition-all" onclick="showTab('ban-co-biet')">
-                💡 Bạn có biết?
-            </button>
-        </nav>
+        <!-- KHU VỰC CHUYỂN TAB ĐÃ BỊ XÓA -->
+        <!-- <nav> ... </nav> -->
 
-        <!-- NỘI DUNG CÁC TAB -->
+        <!-- NỘI DUNG CHÍNH (hiển thị tất cả) -->
         <main>
             <!-- =================================== -->
-            <!-- TAB 1: BÀI ĐỌC -->
+            <!-- PHẦN 1: BÀI ĐỌC -->
             <!-- =================================== -->
-            <section id="tab-bai-doc" class="tab-content active">
+            <!-- Thêm mb-12 để tạo khoảng cách với phần 2 -->
+            <section id="bai-doc" class="mb-12">
                 
                 <!-- NÚT BẬT/TẮT -->
                 <div class="flex justify-center items-center flex-wrap gap-4 bg-white p-4 rounded-lg shadow-md mb-8 sticky top-4 z-10">
@@ -877,9 +898,13 @@
             </section>
 
             <!-- =================================== -->
-            <!-- TAB 2: BÀI LUYỆN TẬP -->
+            <!-- PHẦN 2: BÀI LUYỆN TẬP -->
             <!-- =================================== -->
-            <section id="tab-bai-tap" class="tab-content">
+            <!-- Thêm mb-12 để tạo khoảng cách với phần 3 -->
+            <section id="bai-tap" class="mb-12">
+                <!-- Tiêu đề chính cho phần luyện tập -->
+                <h2 class="text-4xl md:text-5xl font-bold text-red-800 mb-8 text-center">✏️ Bài luyện tập</h2>
+                
                 <div class="space-y-10">
 
                     <!-- BÀI 1: TRẮC NGHIỆM -->
@@ -932,7 +957,7 @@
                                 </div>
                             </div>
                         </div>
-                        <button onclick="checkMCQ()" class="mt-6 bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-6 rounded-full transition-all shadow-sm">
+                        <button id="checkMCQButton" class="mt-6 bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-6 rounded-full transition-all shadow-sm">
                             Kiểm tra Phần 1
                         </button>
                     </div>
@@ -964,7 +989,7 @@
                                 等各类型节目。
                             </p>
                         </div>
-                        <button onclick="checkFillIn()" class="mt-6 bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-6 rounded-full transition-all shadow-sm">
+                        <button id="checkFillInButton" class="mt-6 bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-6 rounded-full transition-all shadow-sm">
                             Kiểm tra Phần 2
                         </button>
                     </div>
@@ -992,7 +1017,7 @@
                                 <label><input type="radio" name="tf3" value="false"> Sai</label>
                             </div>
                         </div>
-                        <button onclick="checkTrueFalse()" class="mt-6 bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-6 rounded-full transition-all shadow-sm">
+                        <button id="checkTrueFalseButton" class="mt-6 bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-6 rounded-full transition-all shadow-sm">
                             Kiểm tra Phần 3
                         </button>
                     </div>
@@ -1042,14 +1067,14 @@
                                 </select>
                             </div>
                         </div>
-                         <button onclick="checkMatching()" class="mt-6 bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-6 rounded-full transition-all shadow-sm">
+                         <button id="checkMatchingButton" class="mt-6 bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-6 rounded-full transition-all shadow-sm">
                             Kiểm tra Phần 4
                         </button>
                     </div>
                     
                     <!-- BÀI 5: DỊCH THUẬT -->
                     <div class="quiz-section bg-white p-6 rounded-lg shadow-lg">
-                        <h3 class="text-2xl font-bold text-red-700 mb-6 border-l-4 border-red-600 pl-4">Phần 5: Luyện dịch</h3>
+                        <h3 class="text-2xl font-bold text-red-700 mb-6 border-l-4 border-red-600 pl-4">Phần 5: Luyện dịch (Từ bài đọc)</h3>
                         <div class="space-y-6">
                             <div>
                                 <p class="text-lg font-semibold mb-2">1. Dịch sang tiếng Việt:</p>
@@ -1068,18 +1093,168 @@
                                 </div>
                             </div>
                         </div>
-                        <button onclick="showTranslationAnswers()" class="mt-6 bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-6 rounded-full transition-all shadow-sm">
+                        <button id="showTranslationButton" class="mt-6 bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-6 rounded-full transition-all shadow-sm">
                             Hiện gợi ý
                         </button>
                     </div>
+
+                    <!-- =================================== -->
+                    <!-- BÀI 6: LUYỆN TẬP CẤU TRÚC (MỚI) -->
+                    <!-- =================================== -->
+                    <div class="quiz-section bg-white p-6 rounded-lg shadow-lg">
+                        <h3 class="text-2xl font-bold text-red-700 mb-6 border-l-4 border-red-600 pl-4">Phần 6: Luyện tập cấu trúc & dịch (Tương tác)</h3>
+                        
+                        <!-- Thêm ID để JavaScript có thể chọn đúng khu vực -->
+                        <div id="quiz-structure" class="space-y-8">
+
+                            <!-- Cấu trúc 1 -->
+                            <div>
+                                <h4 class="text-xl font-bold text-gray-800 mb-3">🧩 1. 被定位为 (bèi dìngwèi wéi) - được định vị là / được xem là</h4>
+                                <div class="space-y-4">
+                                    <div class="structure-vi-zh p-3 rounded-md bg-blue-50">
+                                        <p class="mb-1">Bắc Kinh được định vị là trung tâm văn hoá của Trung Quốc.</p>
+                                        <input type="text" class="w-full p-2 border-2 border-gray-300 rounded-lg" data-answer="北京被定位为中国的文化中心。" placeholder="Dịch sang tiếng Trung...">
+                                    </div>
+                                    <div class="structure-vi-zh p-3 rounded-md bg-blue-50">
+                                        <p class="mb-1">Cà phê này được định vị là sản phẩm cao cấp.</p>
+                                        <input type="text" class="w-full p-2 border-2 border-gray-300 rounded-lg" data-answer="这款咖啡被定位为高档产品。" placeholder="Dịch sang tiếng Trung...">
+                                    </div>
+                                    <!-- ĐÃ THÊM LẠI VÍ DỤ NÀY -->
+                                    <div class="structure-vi-zh p-3 rounded-md bg-blue-50">
+                                        <p class="mb-1">Trường tôi được định vị là trường trọng điểm của thành phố.</p>
+                                        <input type="text" class="w-full p-2 border-2 border-gray-300 rounded-lg" data-answer="我们学校被定位为市重点学校。" placeholder="Dịch sang tiếng Trung...">
+                                    </div>
+                                    <div class="structure-zh-vi p-3 rounded-md bg-green-50">
+                                        <p class="mb-1 chinese-example">上海被定位为国际金融城市。</p>
+                                        <input type="text" class="w-full p-2 border-2 border-gray-300 rounded-lg" data-answer="Thượng Hải được định vị là thành phố tài chính quốc tế." placeholder="Dịch sang tiếng Việt...">
+                                    </div>
+                                    <!-- ĐÃ THÊM LẠI 2 VÍ DỤ NÀY -->
+                                    <div class="structure-zh-vi p-3 rounded-md bg-green-50">
+                                        <p class="mb-1 chinese-example">这家餐厅被定位为家庭式餐厅。</p>
+                                        <input type="text" class="w-full p-2 border-2 border-gray-300 rounded-lg" data-answer="Nhà hàng này được định vị là nhà hàng kiểu gia đình." placeholder="Dịch sang tiếng Việt...">
+                                    </div>
+                                    <div class="structure-zh-vi p-3 rounded-md bg-green-50">
+                                        <p class="mb-1 chinese-example">这个品牌被定位为年轻人市场。</p>
+                                        <input type="text" class="w-full p-2 border-2 border-gray-300 rounded-lg" data-answer="Thương hiệu này được định vị là hướng đến thị trường giới trẻ." placeholder="Dịch sang tiếng Việt...">
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Cấu trúc 2 -->
+                            <div>
+                                <h4 class="text-xl font-bold text-gray-800 mb-3">🎯 2. 为了……而 (wèile… ér) - vì… mà / để… mà…</h4>
+                                <div class="space-y-4">
+                                    <div class="structure-vi-zh p-3 rounded-md bg-blue-50">
+                                        <p class="mb-1">Để học tốt tiếng Trung, tôi mỗi ngày đều luyện nói.</p>
+                                        <input type="text" class="w-full p-2 border-2 border-gray-300 rounded-lg" data-answer="为了学好汉语，我每天都练习说话。" placeholder="Dịch sang tiếng Trung...">
+                                    </div>
+                                    <!-- ĐÃ THÊM LẠI 2 VÍ DỤ NÀY -->
+                                    <div class="structure-vi-zh p-3 rounded-md bg-blue-50">
+                                        <p class="mb-1">Để giúp bạn bè, cô ấy đã thức cả đêm.</p>
+                                        <input type="text" class="w-full p-2 border-2 border-gray-300 rounded-lg" data-answer="为了帮助朋友，她通宵没睡。" placeholder="Dịch sang tiếng Trung...">
+                                    </div>
+                                    <div class="structure-vi-zh p-3 rounded-md bg-blue-50">
+                                        <p class="mb-1">Để bảo vệ môi trường, chúng ta nên ít dùng túi nhựa.</p>
+                                        <input type="text" class="w-full p-2 border-2 border-gray-300 rounded-lg" data-answer="为了保护环境，我们应该少用塑料袋。" placeholder="Dịch sang tiếng Trung...">
+                                    </div>
+                                    <div class="structure-zh-vi p-3 rounded-md bg-green-50">
+                                        <p class="mb-1 chinese-example">为了健康，他每天都去跑步。</p>
+                                        <input type="text" class="w-full p-2 border-2 border-gray-300 rounded-lg" data-answer="Vì sức khỏe, anh ấy chạy bộ mỗi ngày." placeholder="Dịch sang tiếng Việt...">
+                                    </div>
+                                    <!-- ĐÃ THÊM LẠI 2 VÍ DỤ NÀY -->
+                                    <div class="structure-zh-vi p-3 rounded-md bg-green-50">
+                                        <p class="mb-1 chinese-example">为了赶火车，他早上六点就起床了。</p>
+                                        <input type="text" class="w-full p-2 border-2 border-gray-300 rounded-lg" data-answer="Để kịp tàu, anh ấy đã dậy từ 6 giờ sáng." placeholder="Dịch sang tiếng Việt...">
+                                    </div>
+                                    <div class="structure-zh-vi p-3 rounded-md bg-green-50">
+                                        <p class="mb-1 chinese-example">为了看演唱会，他们排了两个小时的队。</p>
+                                        <input type="text" class="w-full p-2 border-2 border-gray-300 rounded-lg" data-answer="Để xem buổi hòa nhạc, họ đã xếp hàng hai tiếng đồng hồ." placeholder="Dịch sang tiếng Việt...">
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Cấu trúc 3 -->
+                            <div>
+                                <h4 class="text-xl font-bold text-gray-800 mb-3">🍎 3. Cấu trúc liệt kê: ...等 (...děng) - v.v.</h4>
+                                 <div class="space-y-4">
+                                    <div class="structure-vi-zh p-3 rounded-md bg-blue-50">
+                                        <p class="mb-1">Tôi thích đọc sách, nghe nhạc, xem phim v.v.</p>
+                                        <input type="text" class="w-full p-2 border-2 border-gray-300 rounded-lg" data-answer="我喜欢看书、听音乐、看电影等活动。" placeholder="Dịch sang tiếng Trung...">
+                                    </div>
+                                    <!-- ĐÃ THÊM LẠI 2 VÍ DỤ NÀY -->
+                                    <div class="structure-vi-zh p-3 rounded-md bg-blue-50">
+                                        <p class="mb-1">Trường tôi có nhiều câu lạc bộ như thể thao, âm nhạc, nhiếp ảnh v.v.</p>
+                                        <input type="text" class="w-full p-2 border-2 border-gray-300 rounded-lg" data-answer="我们学校有体育、音乐、摄影等社团。" placeholder="Dịch sang tiếng Trung...">
+                                    </div>
+                                    <div class="structure-vi-zh p-3 rounded-md bg-blue-50">
+                                        <p class="mb-1">Cửa hàng này bán quần áo, giày dép, túi xách v.v.</p>
+                                        <input type="text" class="w-full p-2 border-2 border-gray-300 rounded-lg" data-answer="这家店卖衣服、鞋子、包包等东西。" placeholder="Dịch sang tiếng Trung...">
+                                    </div>
+                                    <div class="structure-zh-vi p-3 rounded-md bg-green-50">
+                                        <p class="mb-1 chinese-example">我喜欢猫、狗、兔子等小动物。</p>
+                                        <input type="text" class="w-full p-2 border-2 border-gray-300 rounded-lg" data-answer="Tôi thích mèo, chó, thỏ và các con vật nhỏ khác." placeholder="Dịch sang tiếng Việt...">
+                                    </div>
+                                    <!-- ĐÃ THÊM LẠI 2 VÍ DỤ NÀY -->
+                                    <div class="structure-zh-vi p-3 rounded-md bg-green-50">
+                                        <p class="mb-1 chinese-example">超市里有水果、蔬菜、肉类等食品。</p>
+                                        <input type="text" class="w-full p-2 border-2 border-gray-300 rounded-lg" data-answer="Trong siêu thị có trái cây, rau, thịt và các loại thực phẩm khác." placeholder="Dịch sang tiếng Việt...">
+                                    </div>
+                                    <div class="structure-zh-vi p-3 rounded-md bg-green-50">
+                                        <p class="mb-1 chinese-example">我打算去北京、上海、广州等城市旅游。</p>
+                                        <input type="text" class="w-full p-2 border-2 border-gray-300 rounded-lg" data-answer="Tôi dự định đi du lịch Bắc Kinh, Thượng Hải, Quảng Châu và các thành phố khác." placeholder="Dịch sang tiếng Việt...">
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Cấu trúc 4 -->
+                            <div>
+                                <h4 class="text-xl font-bold text-gray-800 mb-3">💬 4. 受……的欢迎 (shòu… de huānyíng) - được... yêu thích</h4>
+                                <div class="space-y-4">
+                                    <div class="structure-vi-zh p-3 rounded-md bg-blue-50">
+                                        <p class="mb-1">Món ăn này rất được học sinh yêu thích.</p>
+                                        <input type="text" class="w-full p-2 border-2 border-gray-300 rounded-lg" data-answer="这道菜很受学生的欢迎。" placeholder="Dịch sang tiếng Trung...">
+                                    </div>
+                                    <!-- ĐÃ THÊM LẠI 2 VÍ DỤ NÀY -->
+                                    <div class="structure-vi-zh p-3 rounded-md bg-blue-50">
+                                        <p class="mb-1">Bộ phim đó rất được khán giả chào đón.</p>
+                                        <input type="text" class="w-full p-2 border-2 border-gray-300 rounded-lg" data-answer="那部电影很受观众的欢迎。" placeholder="Dịch sang tiếng Trung...">
+                                    </div>
+                                    <div class="structure-vi-zh p-3 rounded-md bg-blue-50">
+                                        <p class="mb-1">Các lớp học online rất được mọi người ưa chuộng.</p>
+                                        <input type="text" class="w-full p-2 border-2 border-gray-300 rounded-lg" data-answer="网上课程很受大家的欢迎。" placeholder="Dịch sang tiếng Trung...">
+                                    </div>
+                                    <div class="structure-zh-vi p-3 rounded-md bg-green-50">
+                                        <p class="mb-1 chinese-example">这个歌手的音乐很受年轻人的欢迎。</p>
+                                        <input type="text" class="w-full p-2 border-2 border-gray-300 rounded-lg" data-answer="Âm nhạc của ca sĩ này rất được giới trẻ yêu thích." placeholder="Dịch sang tiếng Việt...">
+                                    </div>
+                                    <!-- ĐÃ THÊM LẠI 2 VÍ DỤ NÀY -->
+                                    <div class="structure-zh-vi p-3 rounded-md bg-green-50">
+                                        <p class="mb-1 chinese-example">这本书很受老师们的欢迎。</p>
+                                        <input type="text" class="w-full p-2 border-2 border-gray-300 rounded-lg" data-answer="Quyển sách này rất được các thầy cô giáo yêu thích." placeholder="Dịch sang tiếng Việt...">
+                                    </div>
+                                    <div class="structure-zh-vi p-3 rounded-md bg-green-50">
+                                        <p class="mb-1 chinese-example">他的中文课很受外国学生的欢迎。</p>
+                                        <input type="text" class="w-full p-2 border-2 border-gray-300 rounded-lg" data-answer="Lớp tiếng Trung của anh ấy rất được sinh viên nước ngoài yêu thích." placeholder="Dịch sang tiếng Việt...">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Nút kiểm tra cho Phần 6 -->
+                        <button id="checkStructureButton" class="mt-6 bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-6 rounded-full transition-all shadow-sm">
+                            Kiểm tra Phần 6
+                        </button>
+                    </div>
+                    <!-- Hết Phần 6 -->
 
                 </div>
             </section>
 
             <!-- =================================== -->
-            <!-- TAB 3: BẠN CÓ BIẾT? -->
+            <!-- PHẦN 3: BẠN CÓ BIẾT? -->
             <!-- =================================== -->
-            <section id="tab-ban-co-biet" class="tab-content">
+            <section id="ban-co-biet">
+                <!-- Tiêu đề đã có sẵn bên trong -->
                 <div class="bg-white p-6 sm:p-10 rounded-lg shadow-lg">
                     <h2 class="text-3xl font-bold text-red-700 mb-6 text-center">💡 Bạn có biết?</h2>
                     <ul class="space-y-6 list-disc list-outside pl-6 text-lg text-gray-800">
@@ -1095,6 +1270,20 @@
                         <li>
                             <strong>Nơi "tạo trend" (tạo xu hướng):</strong> Các tiết mục, đặc biệt là tiểu phẩm (小品), thường tạo ra những câu nói cửa miệng (流行语) hoặc xu hướng thời trang được lan truyền mạnh mẽ sau đêm Giao thừa.
                         </li>
+                        <!-- NỘI DUNG MỚI ĐƯỢC THÊM VÀO -->
+                        <li>
+                            <strong>Kỷ lục Guinness (吉尼斯纪录):</strong> Chương trình đang giữ Kỷ lục Guinness Thế giới là "Chương trình truyền hình được xem nhiều nhất thế giới". Mỗi năm, nó thu hút hàng trăm triệu khán giả, không chỉ ở Trung Quốc mà còn trên toàn cầu.
+                        </li>
+                         <li>
+                            <strong>Linh vật (吉祥物):</strong> Bắt đầu từ năm 2015, mỗi năm 《春晚》 đều có một linh vật (吉祥物) riêng, thường dựa trên con giáp của năm đó. Ví dụ, linh vật của năm Thìn 2024 là "Long Thần" (龙辰).
+                        </li>
+                        <li>
+                            <strong>Phô diễn công nghệ (高科技):</strong> 《春晚》 là nơi Trung Quốc phô diễn những công nghệ truyền hình tiên tiến nhất. Những năm gần đây, chương trình đã sử dụng rộng rãi 8K, 5G, AI, và thực tế ảo (VR/AR) để tạo ra các sân khấu và hiệu ứng hình ảnh ngoạn mục.
+                        </li>
+                        <li>
+                            <strong>Khán giả tại trường quay (观众席):</strong> Việc có được một vé xem trực tiếp tại trường quay là vô cùng khó khăn. Hàng ghế khán giả thường có sự góp mặt của các nhân vật nổi tiếng, anh hùng lao động, các đại biểu ưu tú và đại diện từ nhiều ngành nghề.
+                        </li>
+                        <!-- KẾT THÚC NỘI DUNG MỚI -->
                     </ul>
                 </div>
             </section>
@@ -1107,128 +1296,165 @@
     </div>
 
     <script>
-        // ===================================
-        // SCRIPT: CHUYỂN TAB
-        // ===================================
-        const tabButtons = document.querySelectorAll('.tab-button');
-        const tabContents = document.querySelectorAll('.tab-content');
+        // Chạy toàn bộ mã JavaScript sau khi trang HTML đã được tải và phân tích xong.
+        document.addEventListener('DOMContentLoaded', function() {
+            
+            // ===================================
+            // A. SCRIPT: CHUYỂN TAB (ĐÃ BỊ XÓA)
+            // ===================================
+            // Không cần script chuyển tab nữa
 
-        function showTab(tabId) {
-            // Ẩn tất cả nội dung tab
-            tabContents.forEach(content => {
-                content.classList.remove('active');
-            });
-            // Xóa trạng thái active của tất cả nút tab
-            tabButtons.forEach(button => {
-                button.classList.remove('active');
-            });
+            // ===================================
+            // B. SCRIPT: GÁN EVENT LISTENERS (Phần Toggle)
+            // ===================================
+            const togglePinyinButton = document.getElementById('togglePinyin');
+            if (togglePinyinButton) {
+                togglePinyinButton.addEventListener('click', function() {
+                    document.body.classList.toggle('show-pinyin');
+                    // Cập nhật văn bản nút
+                    this.textContent = document.body.classList.contains('show-pinyin') ? 'Tắt Pinyin' : 'Bật Pinyin';
+                });
+            }
 
-            // Hiển thị tab được chọn
-            document.getElementById(tabId).classList.add('active');
-            // Đánh dấu nút tab được chọn
-            document.querySelector(`.tab-button[onclick="showTab('${tabId}')"]`).classList.add('active');
-        }
+            const toggleVietButton = document.getElementById('toggleViet');
+            if (toggleVietButton) {
+                toggleVietButton.addEventListener('click', function() {
+                    document.body.classList.toggle('show-viet');
+                    // Cập nhật văn bản nút
+                    this.textContent = document.body.classList.contains('show-viet') ? 'Tắt Nghĩa' : 'Bật Nghĩa';
+                });
+            }
+            
+            // ===================================
+            // C. SCRIPT: KIỂM TRA BÀI TẬP
+            // ===================================
 
-        // ===================================
-        // SCRIPT: BẬT/TẮT PINYIN & NGHĨA
-        // ===================================
-        document.getElementById('togglePinyin').addEventListener('click', function() {
-            document.body.classList.toggle('show-pinyin');
-            // Cập nhật văn bản nút
-            this.textContent = document.body.classList.contains('show-pinyin') ? 'Tắt Pinyin' : 'Bật Pinyin';
-        });
+            // Phần 1: Trắc nghiệm
+            function checkMCQ() {
+                const answers = { q1: 'B', q2: 'B', q3: 'A' };
+                for (const q in answers) {
+                    const radios = document.getElementsByName(q);
+                    radios.forEach(radio => {
+                        const label = radio.closest('label');
+                        label.classList.remove('correct', 'incorrect');
+                        if (radio.checked) {
+                            if (radio.value === answers[q]) {
+                                label.classList.add('correct');
+                            } else {
+                                label.classList.add('incorrect');
+                            }
+                        }
+                    });
+                }
+            }
 
-        document.getElementById('toggleViet').addEventListener('click', function() {
-            document.body.classList.toggle('show-viet');
-            // Cập nhật văn bản nút
-            this.textContent = document.body.classList.contains('show-viet') ? 'Tắt Nghĩa' : 'Bật Nghĩa';
-        });
+            // Phần 2: Điền vào chỗ trống
+            function checkFillIn() {
+                const inputs = document.querySelectorAll('#quiz-fill-in input');
+                inputs.forEach(input => {
+                    const answer = input.dataset.answer;
+                    input.classList.remove('correct', 'incorrect');
+                    // So sánh không phân biệt chữ hoa/thường và bỏ khoảng trắng
+                    if (input.value.trim().toLowerCase() === answer.toLowerCase()) {
+                        input.classList.add('correct');
+                    } else {
+                        input.classList.add('incorrect');
+                    }
+                });
+            }
+            
+            // Phần 3: Đúng / Sai
+            function checkTrueFalse() {
+                const answers = { tf1: 'true', tf2: 'false', tf3: 'false' }; // tf3 sai vì là 包饺子 (gói sủi cảo), không phải bánh chưng
+                for (const q in answers) {
+                    const radios = document.getElementsByName(q);
+                    const container = radios[0].closest('.quiz-option');
+                    container.classList.remove('correct', 'incorrect');
+                    
+                    let checkedValue = null;
+                    radios.forEach(radio => {
+                        if (radio.checked) {
+                            checkedValue = radio.value;
+                        }
+                    });
 
-        // ===================================
-        // SCRIPT: KIỂM TRA BÀI TẬP
-        // ===================================
-
-        // Phần 1: Trắc nghiệm
-        function checkMCQ() {
-            const answers = { q1: 'B', q2: 'B', q3: 'A' };
-            for (const q in answers) {
-                const radios = document.getElementsByName(q);
-                radios.forEach(radio => {
-                    const label = radio.closest('label');
-                    label.classList.remove('correct', 'incorrect');
-                    if (radio.checked) {
-                        if (radio.value === answers[q]) {
-                            label.classList.add('correct');
+                    if (checkedValue) {
+                        if (checkedValue === answers[q]) {
+                            container.classList.add('correct');
                         } else {
-                            label.classList.add('incorrect');
+                            container.classList.add('incorrect');
                         }
                     }
-                });
-            }
-        }
-
-        // Phần 2: Điền vào chỗ trống
-        function checkFillIn() {
-            const inputs = document.querySelectorAll('#quiz-fill-in input');
-            inputs.forEach(input => {
-                const answer = input.dataset.answer;
-                input.classList.remove('correct', 'incorrect');
-                if (input.value.trim() === answer) {
-                    input.classList.add('correct');
-                } else {
-                    input.classList.add('incorrect');
                 }
-            });
-        }
-        
-        // Phần 3: Đúng / Sai
-        function checkTrueFalse() {
-            const answers = { tf1: 'true', tf2: 'false', tf3: 'false' }; // tf3 sai vì là 包饺子 (gói sủi cảo), không phải bánh chưng
-            for (const q in answers) {
-                const radios = document.getElementsByName(q);
-                const container = radios[0].closest('.quiz-option');
-                container.classList.remove('correct', 'incorrect');
-                
-                let checkedValue = null;
-                radios.forEach(radio => {
-                    if (radio.checked) {
-                        checkedValue = radio.value;
+            }
+
+            // Phần 4: Nối từ
+            function checkMatching() {
+                const selects = document.querySelectorAll('#quiz-matching .matching-select');
+                selects.forEach(select => {
+                    const answer = select.dataset.answer;
+                    select.classList.remove('correct', 'incorrect');
+                    if (select.value === answer) {
+                        select.classList.add('correct');
+                    } else if (select.value !== "") {
+                        select.classList.add('incorrect');
                     }
                 });
+            }
+            
+            // Phần 5: Dịch thuật
+            function showTranslationAnswers() {
+                const answers = document.querySelectorAll('.translation-answer');
+                answers.forEach(answer => {
+                    answer.classList.toggle('hidden');
+                });
+            }
 
-                if (checkedValue) {
-                    if (checkedValue === answers[q]) {
-                        container.classList.add('correct');
+            // (MỚI) Phần 6: Luyện tập cấu trúc
+            function checkStructure() {
+                // Chọn tất cả input chỉ trong khu vực #quiz-structure
+                const inputs = document.querySelectorAll('#quiz-structure input[type="text"]');
+                inputs.forEach(input => {
+                    const answer = input.dataset.answer;
+                    input.classList.remove('correct', 'incorrect');
+                    
+                    // Xóa dấu câu, khoảng trắng và chuyển về chữ thường để so sánh linh hoạt hơn
+                    // (Đặc biệt hữu ích cho tiếng Việt)
+                    const userValue = input.value.trim().toLowerCase().replace(/[.,。]/g, '');
+                    const correctValue = answer.trim().toLowerCase().replace(/[.,。]/g, '');
+
+                    if (userValue === correctValue) {
+                        input.classList.add('correct');
                     } else {
-                        container.classList.add('incorrect');
+                        input.classList.add('incorrect');
                     }
-                }
+                });
             }
-        }
 
-        // Phần 4: Nối từ
-        function checkMatching() {
-            const selects = document.querySelectorAll('#quiz-matching .matching-select');
-            selects.forEach(select => {
-                const answer = select.dataset.answer;
-                select.classList.remove('correct', 'incorrect');
-                if (select.value === answer) {
-                    select.classList.add('correct');
-                } else if (select.value !== "") {
-                    select.classList.add('incorrect');
-                }
-            });
-        }
+            // ===================================
+            const checkMCQBtn = document.getElementById('checkMCQButton');
+            if (checkMCQBtn) checkMCQBtn.addEventListener('click', checkMCQ);
+
+            const checkFillInBtn = document.getElementById('checkFillInButton');
+            if (checkFillInBtn) checkFillInBtn.addEventListener('click', checkFillIn);
+            
+            const checkTrueFalseBtn = document.getElementById('checkTrueFalseButton');
+            if (checkTrueFalseBtn) checkTrueFalseBtn.addEventListener('click', checkTrueFalse);
+
+            const checkMatchingBtn = document.getElementById('checkMatchingButton');
+            if (checkMatchingBtn) checkMatchingBtn.addEventListener('click', checkMatching);
+
+            const showTranslationBtn = document.getElementById('showTranslationButton');
+            if (showTranslationBtn) showTranslationBtn.addEventListener('click', showTranslationAnswers);
         
-        // Phần 5: Dịch thuật
-        function showTranslationAnswers() {
-            const answers = document.querySelectorAll('.translation-answer');
-            answers.forEach(answer => {
-                answer.classList.toggle('hidden');
-            });
-        }
+            // (MỚI) Gán listener cho nút kiểm tra Phần 6
+            const checkStructureBtn = document.getElementById('checkStructureButton');
+            if (checkStructureBtn) checkStructureBtn.addEventListener('click', checkStructure);
+
+        }); // Kết thúc DOMContentLoaded
 
     </script>
 </body>
 </html>
+
 
