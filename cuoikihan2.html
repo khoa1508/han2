@@ -8,6 +8,9 @@
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700&family=Quicksand:wght@400;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
     <style>
         body {
             font-family: 'Quicksand', sans-serif;
@@ -68,409 +71,535 @@
             70% { box-shadow: 0 0 0 10px rgba(244, 63, 94, 0); }
             100% { box-shadow: 0 0 0 0 rgba(244, 63, 94, 0); }
         }
+        
+        /* Auto-save notification */
+        .save-notification {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: #10b981;
+            color: white;
+            padding: 12px 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            z-index: 100;
+            transform: translateY(100px);
+            opacity: 0;
+            transition: all 0.3s ease;
+        }
+        .save-notification.show {
+            transform: translateY(0);
+            opacity: 1;
+        }
+        .save-notification.error {
+            background: #ef4444;
+        }
+        
+        /* Login Modal */
+        .login-modal {
+            background: white;
+            border-radius: 24px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.15);
+            animation: modalSlideUp 0.5s ease-out;
+        }
+        @keyframes modalSlideUp {
+            from {
+                opacity: 0;
+                transform: translateY(40px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        .student-badge {
+            background: linear-gradient(135deg, #8b5cf6 0%, #ec4899 100%);
+            color: white;
+            border-radius: 12px;
+            padding: 8px 16px;
+            font-weight: 600;
+            box-shadow: 0 4px 12px rgba(139, 92, 246, 0.3);
+        }
     </style>
 </head>
 <body class="text-gray-700 pb-32">
 
-    <!-- Header -->
-    <header class="bg-white/95 backdrop-blur-md sticky top-0 z-40 shadow-sm border-b border-pink-100">
-        <div class="max-w-5xl mx-auto px-4 py-3 flex justify-between items-center">
-            <div class="flex items-center gap-3">
-                <div class="w-10 h-10 bg-gradient-to-br from-pink-400 to-rose-400 rounded-full flex items-center justify-center text-white text-xl shadow-md">
+    <!-- Login Modal -->
+    <div id="loginModal" class="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4 backdrop-blur-md">
+        <div class="login-modal max-w-md w-full p-8">
+            <div class="text-center mb-8">
+                <div class="w-20 h-20 bg-gradient-to-br from-pink-400 to-rose-400 rounded-full mx-auto flex items-center justify-center text-white text-3xl mb-4 shadow-lg">
                     🐼
                 </div>
-                <div>
-                    <h1 class="font-bold text-gray-800 text-lg">Đề Kiểm Tra Cuối Khóa Cấp 2</h1>
-                    <p class="text-xs text-gray-500">Giáo viên bộ môn tiếng Trung</p>
-                </div>
+                <h2 class="text-2xl font-bold text-gray-800 mb-2">Bài Kiểm Tra Cuối Khóa C2</h2>
+                <p class="text-gray-500">Vui lòng nhập thông tin để bắt đầu làm bài</p>
             </div>
-            <div class="flex flex-col items-end">
-                <span class="text-xs text-gray-400 uppercase font-bold tracking-wider">Thời gian</span>
-                <div id="timer" class="text-2xl font-bold text-rose-500 font-mono bg-rose-50 px-3 py-1 rounded-lg">60:00</div>
+            
+            <form id="loginForm" class="space-y-6">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Họ và tên học viên</label>
+                    <input type="text" id="studentName" required 
+                           class="w-full border-2 border-gray-200 rounded-xl p-3 focus:outline-none focus:border-pink-400 transition"
+                           placeholder="Nguyễn Văn A">
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Mã số học viên</label>
+                    <input type="text" id="studentId" required 
+                           class="w-full border-2 border-gray-200 rounded-xl p-3 focus:outline-none focus:border-pink-400 transition"
+                           placeholder="HV001">
+                    <p class="text-xs text-gray-500 mt-2">Nhập mã số do giáo viên cung cấp</p>
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Lớp học</label>
+                    <select id="studentClass" class="w-full border-2 border-gray-200 rounded-xl p-3 focus:outline-none focus:border-pink-400 transition">
+                        <option value="C2 - Sáng">C2 - Buổi sáng</option>
+                        <option value="C2 - Chiều">C2 - Buổi chiều</option>
+                        <option value="C2 - Tối">C2 - Buổi tối</option>
+                    </select>
+                </div>
+                
+                <div class="pt-4">
+                    <button type="submit" 
+                            class="w-full bg-gradient-to-r from-pink-500 to-rose-500 hover:from-pink-600 hover:to-rose-600 text-white font-bold py-3 px-6 rounded-xl shadow-lg transform hover:scale-[1.02] transition duration-200">
+                        <i class="fas fa-sign-in-alt mr-2"></i> Bắt đầu làm bài
+                    </button>
+                </div>
+            </form>
+            
+            <div class="mt-6 pt-6 border-t border-gray-100">
+                <div class="flex items-center text-sm text-gray-500">
+                    <i class="fas fa-info-circle mr-2 text-blue-400"></i>
+                    <span>Thông tin của bạn sẽ được lưu tự động và khôi phục nếu bạn thoát ra giữa chừng.</span>
+                </div>
             </div>
         </div>
-    </header>
+    </div>
 
-    <main class="max-w-4xl mx-auto px-4 py-8 space-y-8" id="exam-content">
-
-        <!-- === PART 1: FILL IN THE BLANKS === -->
-        <section class="section-card p-6 md:p-8" data-name="Phần 1: Điền từ">
-            <div class="border-b border-dashed border-pink-200 pb-4 mb-6">
-                <h3 class="text-xl font-bold text-rose-600 mb-2">I. Chọn từ điền vào chỗ trống (选词填空)</h3>
-                <div class="bg-rose-50 p-4 rounded-xl flex flex-wrap gap-3 justify-center text-lg font-medium text-rose-700 shadow-inner">
-                    <span class="bg-white px-3 py-1 rounded shadow-sm border border-rose-100">有时候</span>
-                    <span class="bg-white px-3 py-1 rounded shadow-sm border border-rose-100">代表</span>
-                    <span class="bg-white px-3 py-1 rounded shadow-sm border border-rose-100">正好</span>
-                    <span class="bg-white px-3 py-1 rounded shadow-sm border border-rose-100">对</span>
-                    <span class="bg-white px-3 py-1 rounded shadow-sm border border-rose-100">浅</span>
-                </div>
-            </div>
-
-            <div class="space-y-6 text-lg">
-                <!-- Q1 -->
-                <div class="group relative bg-white p-3 rounded-lg border border-transparent hover:border-pink-100 transition" id="p1-q1-container">
-                    <div class="flex items-start justify-between">
-                        <div class="chinese-font w-full">
-                            1. <ruby>有<rt>yǒu</rt></ruby><ruby>没<rt>méi</rt></ruby><ruby>有<rt>yǒu</rt></ruby><ruby>颜<rt>yán</rt></ruby><ruby>色<rt>sè</rt></ruby> 
-                            <select class="bg-gray-50 border-2 border-pink-200 rounded px-2 py-1 text-pink-600 text-base mx-1 font-sans focus:outline-none"><option value="">...</option><option value="qiǎn">浅</option><option value="zhènghǎo">正好</option><option value="duì">对</option></select> 
-                            <ruby>一<rt>yì</rt></ruby><ruby>点<rt>diăn</rt></ruby><ruby>儿<rt>r</rt></ruby><ruby>的<rt>de</rt></ruby>? <ruby>这<rt>zhè</rt></ruby><ruby>件<rt>jiàn</rt></ruby><ruby>颜<rt>yán</rt></ruby><ruby>色<rt>sè</rt></ruby><ruby>有<rt>yǒu</rt></ruby><ruby>点<rt>diăn</rt></ruby><ruby>儿<rt>r</rt></ruby><ruby>深<rt>shēn</rt></ruby>。
+    <!-- Main Content (Hidden until login) -->
+    <div id="mainContent" class="hidden">
+        <!-- Header -->
+        <header class="bg-white/95 backdrop-blur-md sticky top-0 z-40 shadow-sm border-b border-pink-100">
+            <div class="max-w-5xl mx-auto px-4 py-3 flex justify-between items-center">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 bg-gradient-to-br from-pink-400 to-rose-400 rounded-full flex items-center justify-center text-white text-xl shadow-md">
+                        🐼
+                    </div>
+                    <div>
+                        <h1 class="font-bold text-gray-800 text-lg">Đề Kiểm Tra Cuối Khóa Cấp 2</h1>
+                        <div class="flex items-center gap-3">
+                            <div id="studentInfo" class="student-badge text-xs">
+                                <i class="fas fa-user-graduate mr-1"></i>
+                                <span id="displayName">Đang tải...</span>
+                            </div>
+                            <p class="text-xs text-gray-500">Giáo viên bộ môn tiếng Trung</p>
                         </div>
-                        <button onclick="toggleLocalPinyin('p1-q1-container', 'Câu 1 - Phần 1')" class="ml-2 text-pink-300 hover:text-pink-500 transition p-2" title="Xem Pinyin">
-                            <i class="fas fa-eye"></i>
-                        </button>
                     </div>
                 </div>
-
-                <!-- Q2 -->
-                <div class="group relative bg-white p-3 rounded-lg border border-transparent hover:border-pink-100 transition" id="p1-q2-container">
-                    <div class="flex items-start justify-between">
-                        <div class="chinese-font w-full">
-                            2. <ruby>下<rt>xià</rt></ruby><ruby>个<rt>ge</rt></ruby><ruby>月<rt>yuè</rt></ruby><ruby>是<rt>shì</rt></ruby><ruby>我<rt>wõ</rt></ruby><ruby>妈<rt>mā</rt></ruby><ruby>妈<rt>ma</rt></ruby><ruby>的<rt>de</rt></ruby><ruby>生<rt>shēng</rt></ruby><ruby>日<rt>rì</rt></ruby>, <ruby>她<rt>tā</rt></ruby><ruby>生<rt>shēng</rt></ruby><ruby>日<rt>rì</rt></ruby><ruby>那<rt>nà</rt></ruby><ruby>天<rt>tiān</rt></ruby> 
-                            <select class="bg-gray-50 border-2 border-pink-200 rounded px-2 py-1 text-pink-600 text-base mx-1 font-sans focus:outline-none"><option value="">...</option><option value="yǒu shíhou">有时候</option><option value="zhènghǎo">正好</option><option value="dàibiǎo">代表</option></select> 
-                            <ruby>是<rt>shì</rt></ruby><ruby>周<rt>zhōu</rt></ruby><ruby>末<rt>mò</rt></ruby>。
+                <div class="flex flex-col items-end">
+                    <div class="flex items-center gap-4">
+                        <div id="saveStatus" class="text-xs text-green-600 bg-green-50 px-2 py-1 rounded hidden">
+                            <i class="fas fa-save mr-1"></i> Đã lưu
                         </div>
-                        <button onclick="toggleLocalPinyin('p1-q2-container', 'Câu 2 - Phần 1')" class="ml-2 text-pink-300 hover:text-pink-500 transition p-2">
-                            <i class="fas fa-eye"></i>
-                        </button>
-                    </div>
-                </div>
-
-                <!-- Q3 -->
-                <div class="group relative bg-white p-3 rounded-lg border border-transparent hover:border-pink-100 transition" id="p1-q3-container">
-                    <div class="flex items-start justify-between">
-                        <div class="chinese-font w-full">
-                            3. <ruby>我<rt>wõ</rt></ruby> 
-                            <select class="bg-gray-50 border-2 border-pink-200 rounded px-2 py-1 text-pink-600 text-base mx-1 font-sans focus:outline-none"><option value="">...</option><option value="duì">对</option><option value="dàibiǎo">代表</option><option value="qiǎn">浅</option></select> 
-                            <ruby>中<rt>Zhōng</rt></ruby><ruby>国<rt>guó</rt></ruby><ruby>功<rt>gōng</rt></ruby><ruby>夫<rt>fu</rt></ruby><ruby>感<rt>găn</rt></ruby><ruby>兴<rt>xìng</rt></ruby><ruby>趣<rt>qù</rt></ruby>。
+                        <div>
+                            <span class="text-xs text-gray-400 uppercase font-bold tracking-wider">Thời gian</span>
+                            <div id="timer" class="text-2xl font-bold text-rose-500 font-mono bg-rose-50 px-3 py-1 rounded-lg">60:00</div>
                         </div>
-                        <button onclick="toggleLocalPinyin('p1-q3-container', 'Câu 3 - Phần 1')" class="ml-2 text-pink-300 hover:text-pink-500 transition p-2">
-                            <i class="fas fa-eye"></i>
-                        </button>
-                    </div>
-                </div>
-
-                <!-- Q4 -->
-                <div class="group relative bg-white p-3 rounded-lg border border-transparent hover:border-pink-100 transition" id="p1-q4-container">
-                    <div class="flex items-start justify-between">
-                        <div class="chinese-font w-full">
-                            4. <ruby>星<rt>Xīng</rt></ruby><ruby>期<rt>qī</rt></ruby><ruby>天<rt>tiān</rt></ruby>, 
-                            <select class="bg-gray-50 border-2 border-pink-200 rounded px-2 py-1 text-pink-600 text-base mx-1 font-sans focus:outline-none"><option value="">...</option><option value="yǒu shíhou">有时候</option><option value="zhènghǎo">正好</option></select> 
-                            <ruby>我<rt>wǒ</rt></ruby><ruby>在<rt>zài</rt></ruby><ruby>宿<rt>sù</rt></ruby><ruby>舍<rt>shè</rt></ruby><ruby>休<rt>xiū</rt></ruby><ruby>息<rt>xi</rt></ruby>, 
-                            <select class="bg-gray-50 border-2 border-pink-200 rounded px-2 py-1 text-pink-600 text-base mx-1 font-sans focus:outline-none"><option value="">...</option><option value="yǒu shíhou">有时候</option><option value="zhènghǎo">正好</option></select> 
-                            <ruby>跟<rt>gēn</rt></ruby><ruby>朋<rt>péng</rt></ruby><ruby>友<rt>you</rt></ruby><ruby>一<rt>yì</rt></ruby><ruby>起<rt>qǐ</rt></ruby><ruby>去<rt>qù</rt></ruby><ruby>公<rt>gōng</rt></ruby><ruby>园<rt>yuán</rt></ruby><ruby>玩<rt>wán</rt></ruby><ruby>儿<rt>r</rt></ruby>。
-                        </div>
-                        <button onclick="toggleLocalPinyin('p1-q4-container', 'Câu 4 - Phần 1')" class="ml-2 text-pink-300 hover:text-pink-500 transition p-2">
-                            <i class="fas fa-eye"></i>
-                        </button>
-                    </div>
-                </div>
-
-                <!-- Q5 -->
-                <div class="group relative bg-white p-3 rounded-lg border border-transparent hover:border-pink-100 transition" id="p1-q5-container">
-                    <div class="flex items-start justify-between">
-                        <div class="chinese-font w-full">
-                            5. <ruby>妹<rt>Mèi</rt></ruby><ruby>妹<rt>mei</rt></ruby><ruby>跟<rt>gēn</rt></ruby> 
-                            <select class="bg-gray-50 border-2 border-pink-200 rounded px-2 py-1 text-pink-600 text-base mx-1 font-sans focus:outline-none"><option value="">...</option><option value="duì">对</option><option value="dàibiǎo">代表</option></select> 
-                            <ruby>团<rt>tuán</rt></ruby><ruby>一<rt>yì</rt></ruby><ruby>起<rt>qǐ</rt></ruby><ruby>去<rt>qù</rt></ruby><ruby>上<rt>Shàng</rt></ruby><ruby>海<rt>hǎi</rt></ruby><ruby>参<rt>cān</rt></ruby><ruby>观<rt>guān</rt></ruby>, <ruby>她<rt>tā</rt></ruby><ruby>当<rt>dāng</rt></ruby><ruby>翻<rt>fān</rt></ruby><ruby>译<rt>yì</rt></ruby>。
-                        </div>
-                        <button onclick="toggleLocalPinyin('p1-q5-container', 'Câu 5 - Phần 1')" class="ml-2 text-pink-300 hover:text-pink-500 transition p-2">
-                            <i class="fas fa-eye"></i>
-                        </button>
                     </div>
                 </div>
             </div>
-        </section>
+        </header>
 
-        <!-- === PART 2: READING === -->
-        <section class="section-card p-6 md:p-8" data-name="Phần 2: Đọc hiểu">
-            <div class="flex justify-between items-center mb-4">
-                <h3 class="text-xl font-bold text-rose-600">II. Đọc đoạn văn và chọn đáp án đúng</h3>
-                <button onclick="toggleLocalPinyin('reading-text', 'Đoạn văn đọc hiểu')" class="bg-rose-100 hover:bg-rose-200 text-rose-600 px-3 py-1 rounded-full text-sm font-semibold transition flex items-center gap-2">
-                    <i class="fas fa-eye"></i> Hiện Pinyin
+        <main class="max-w-4xl mx-auto px-4 py-8 space-y-8" id="exam-content">
+            <!-- === PART 1: FILL IN THE BLANKS === -->
+            <section class="section-card p-6 md:p-8" data-name="Phần 1: Điền từ">
+                <div class="border-b border-dashed border-pink-200 pb-4 mb-6">
+                    <h3 class="text-xl font-bold text-rose-600 mb-2">I. Chọn từ điền vào chỗ trống (选词填空)</h3>
+                    <div class="bg-rose-50 p-4 rounded-xl flex flex-wrap gap-3 justify-center text-lg font-medium text-rose-700 shadow-inner">
+                        <span class="bg-white px-3 py-1 rounded shadow-sm border border-rose-100">有时候</span>
+                        <span class="bg-white px-3 py-1 rounded shadow-sm border border-rose-100">代表</span>
+                        <span class="bg-white px-3 py-1 rounded shadow-sm border border-rose-100">正好</span>
+                        <span class="bg-white px-3 py-1 rounded shadow-sm border border-rose-100">对</span>
+                        <span class="bg-white px-3 py-1 rounded shadow-sm border border-rose-100">浅</span>
+                    </div>
+                </div>
+
+                <div class="space-y-6 text-lg">
+                    <!-- Q1 -->
+                    <div class="group relative bg-white p-3 rounded-lg border border-transparent hover:border-pink-100 transition" id="p1-q1-container">
+                        <div class="flex items-start justify-between">
+                            <div class="chinese-font w-full">
+                                1. <ruby>有<rt>yǒu</rt></ruby><ruby>没<rt>méi</rt></ruby><ruby>有<rt>yǒu</rt></ruby><ruby>颜<rt>yán</rt></ruby><ruby>色<rt>sè</rt></ruby> 
+                                <select class="save-data bg-gray-50 border-2 border-pink-200 rounded px-2 py-1 text-pink-600 text-base mx-1 font-sans focus:outline-none" data-question="p1-q1"><option value="">...</option><option value="qiǎn">浅</option><option value="zhènghǎo">正好</option><option value="duì">对</option></select> 
+                                <ruby>一<rt>yì</rt></ruby><ruby>点<rt>diăn</rt></ruby><ruby>儿<rt>r</rt></ruby><ruby>的<rt>de</rt></ruby>? <ruby>这<rt>zhè</rt></ruby><ruby>件<rt>jiàn</rt></ruby><ruby>颜<rt>yán</rt></ruby><ruby>色<rt>sè</rt></ruby><ruby>有<rt>yǒu</rt></ruby><ruby>点<rt>diăn</rt></ruby><ruby>儿<rt>r</rt></ruby><ruby>深<rt>shēn</rt></ruby>。
+                            </div>
+                            <button onclick="toggleLocalPinyin('p1-q1-container', 'Câu 1 - Phần 1')" class="ml-2 text-pink-300 hover:text-pink-500 transition p-2" title="Xem Pinyin">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Q2 -->
+                    <div class="group relative bg-white p-3 rounded-lg border border-transparent hover:border-pink-100 transition" id="p1-q2-container">
+                        <div class="flex items-start justify-between">
+                            <div class="chinese-font w-full">
+                                2. <ruby>下<rt>xià</rt></ruby><ruby>个<rt>ge</rt></ruby><ruby>月<rt>yuè</rt></ruby><ruby>是<rt>shì</rt></ruby><ruby>我<rt>wõ</rt></ruby><ruby>妈<rt>mā</rt></ruby><ruby>妈<rt>ma</rt></ruby><ruby>的<rt>de</rt></ruby><ruby>生<rt>shēng</rt></ruby><ruby>日<rt>rì</rt></ruby>, <ruby>她<rt>tā</rt></ruby><ruby>生<rt>shēng</rt></ruby><ruby>日<rt>rì</rt></ruby><ruby>那<rt>nà</rt></ruby><ruby>天<rt>tiān</rt></ruby> 
+                                <select class="save-data bg-gray-50 border-2 border-pink-200 rounded px-2 py-1 text-pink-600 text-base mx-1 font-sans focus:outline-none" data-question="p1-q2"><option value="">...</option><option value="yǒu shíhou">有时候</option><option value="zhènghǎo">正好</option><option value="dàibiǎo">代表</option></select> 
+                                <ruby>是<rt>shì</rt></ruby><ruby>周<rt>zhōu</rt></ruby><ruby>末<rt>mò</rt></ruby>。
+                            </div>
+                            <button onclick="toggleLocalPinyin('p1-q2-container', 'Câu 2 - Phần 1')" class="ml-2 text-pink-300 hover:text-pink-500 transition p-2">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Q3 -->
+                    <div class="group relative bg-white p-3 rounded-lg border border-transparent hover:border-pink-100 transition" id="p1-q3-container">
+                        <div class="flex items-start justify-between">
+                            <div class="chinese-font w-full">
+                                3. <ruby>我<rt>wõ</rt></ruby> 
+                                <select class="save-data bg-gray-50 border-2 border-pink-200 rounded px-2 py-1 text-pink-600 text-base mx-1 font-sans focus:outline-none" data-question="p1-q3"><option value="">...</option><option value="duì">对</option><option value="dàibiǎo">代表</option><option value="qiǎn">浅</option></select> 
+                                <ruby>中<rt>Zhōng</rt></ruby><ruby>国<rt>guó</rt></ruby><ruby>功<rt>gōng</rt></ruby><ruby>夫<rt>fu</rt></ruby><ruby>感<rt>găn</rt></ruby><ruby>兴<rt>xìng</rt></ruby><ruby>趣<rt>qù</rt></ruby>。
+                            </div>
+                            <button onclick="toggleLocalPinyin('p1-q3-container', 'Câu 3 - Phần 1')" class="ml-2 text-pink-300 hover:text-pink-500 transition p-2">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Q4 -->
+                    <div class="group relative bg-white p-3 rounded-lg border border-transparent hover:border-pink-100 transition" id="p1-q4-container">
+                        <div class="flex items-start justify-between">
+                            <div class="chinese-font w-full">
+                                4. <ruby>星<rt>Xīng</rt></ruby><ruby>期<rt>qī</rt></ruby><ruby>天<rt>tiān</rt></ruby>, 
+                                <select class="save-data bg-gray-50 border-2 border-pink-200 rounded px-2 py-1 text-pink-600 text-base mx-1 font-sans focus:outline-none" data-question="p1-q4a"><option value="">...</option><option value="yǒu shíhou">有时候</option><option value="zhènghǎo">正好</option></select> 
+                                <ruby>我<rt>wǒ</rt></ruby><ruby>在<rt>zài</rt></ruby><ruby>宿<rt>sù</rt></ruby><ruby>舍<rt>shè</rt></ruby><ruby>休<rt>xiū</rt></ruby><ruby>息<rt>xi</rt></ruby>, 
+                                <select class="save-data bg-gray-50 border-2 border-pink-200 rounded px-2 py-1 text-pink-600 text-base mx-1 font-sans focus:outline-none" data-question="p1-q4b"><option value="">...</option><option value="yǒu shíhou">有时候</option><option value="zhènghǎo">正好</option></select> 
+                                <ruby>跟<rt>gēn</rt></ruby><ruby>朋<rt>péng</rt></ruby><ruby>友<rt>you</rt></ruby><ruby>一<rt>yì</rt></ruby><ruby>起<rt>qǐ</rt></ruby><ruby>去<rt>qù</rt></ruby><ruby>公<rt>gōng</rt></ruby><ruby>园<rt>yuán</rt></ruby><ruby>玩<rt>wán</rt></ruby<ruby>儿<rt>r</rt></ruby>。
+                            </div>
+                            <button onclick="toggleLocalPinyin('p1-q4-container', 'Câu 4 - Phần 1')" class="ml-2 text-pink-300 hover:text-pink-500 transition p-2">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Q5 -->
+                    <div class="group relative bg-white p-3 rounded-lg border border-transparent hover:border-pink-100 transition" id="p1-q5-container">
+                        <div class="flex items-start justify-between">
+                            <div class="chinese-font w-full">
+                                5. <ruby>妹<rt>Mèi</rt></ruby><ruby>妹<rt>mei</rt></ruby><ruby>跟<rt>gēn</rt></ruby> 
+                                <select class="save-data bg-gray-50 border-2 border-pink-200 rounded px-2 py-1 text-pink-600 text-base mx-1 font-sans focus:outline-none" data-question="p1-q5"><option value="">...</option><option value="duì">对</option><option value="dàibiǎo">代表</option></select> 
+                                <ruby>团<rt>tuán</rt></ruby><ruby>一<rt>yì</rt></ruby><ruby>起<rt>qǐ</rt></ruby><ruby>去<rt>qù</rt></ruby><ruby>上<rt>Shàng</rt></ruby><ruby>海<rt>hǎi</rt></ruby><ruby>参<rt>cān</rt></ruby><ruby>观<rt>guān</rt></ruby>, <ruby>她<rt>tā</rt></ruby><ruby>当<rt>dāng</rt></ruby><ruby>翻<rt>fān</rt></ruby><ruby>译<rt>yì</rt></ruby>。
+                            </div>
+                            <button onclick="toggleLocalPinyin('p1-q5-container', 'Câu 5 - Phần 1')" class="ml-2 text-pink-300 hover:text-pink-500 transition p-2">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- === PART 2: READING === -->
+            <section class="section-card p-6 md:p-8" data-name="Phần 2: Đọc hiểu">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-xl font-bold text-rose-600">II. Đọc đoạn văn và chọn đáp án đúng</h3>
+                    <button onclick="toggleLocalPinyin('reading-text', 'Đoạn văn đọc hiểu')" class="bg-rose-100 hover:bg-rose-200 text-rose-600 px-3 py-1 rounded-full text-sm font-semibold transition flex items-center gap-2">
+                        <i class="fas fa-eye"></i> Hiện Pinyin
+                    </button>
+                </div>
+                
+                <div class="bg-blue-50/80 p-6 rounded-2xl border border-blue-100 mb-8 relative shadow-sm" id="reading-text">
+                    <div class="chinese-font text-gray-800 text-justify">
+                        <ruby>山<rt>Shān</rt></ruby><ruby>田<rt>tián</rt></ruby>、<ruby>安<rt>Ān</rt></ruby><ruby>娜<rt>nà</rt></ruby>和<ruby>玛<rt>Mă</rt></ruby><ruby>丽<rt>lì</rt></ruby>是<ruby>我<rt>wǒ</rt></ruby>的<ruby>同<rt>tóng</rt></ruby><ruby>班<rt>bān</rt></ruby><ruby>同<rt>tóng</rt></ruby><ruby>学<rt>xué</rt></ruby>。
+                        <ruby>我<rt>wǒ</rt></ruby><ruby>们<rt>men</rt></ruby><ruby>常<rt>cháng</rt></ruby><ruby>常<rt>cháng</rt></ruby><ruby>一<rt>yì</rt></ruby><ruby>起<rt>qǐ</rt></ruby><ruby>聊<rt>liáo</rt></ruby><ruby>天<rt>tiānr</rt></ruby><ruby>儿<rt></rt></ruby>。
+                        <ruby>山<rt>Shān</rt></ruby><ruby>田<rt>tián</rt></ruby><ruby>说<rt>shuō</rt></ruby><ruby>他<rt>tā</rt></ruby<ruby>喜<rt>xǐ</rt></ruby><ruby>欢<rt>huan</rt></ruby><ruby>中<rt>Zhōng</rt></ruby><ruby>国<rt>guó</rt></ruby><ruby>功<rt>gōng</rt></ruby><ruby>夫<rt>fu</rt></ruby>，
+                        <ruby>他<rt>tā</rt></ruby><ruby>每<rt>měi</rt></ruby><ruby>天<rt>tiān</rt></ruby><ruby>都<rt>dōu</rt></ruby><ruby>练<rt>liàn</rt></ruby><ruby>习<rt>xí</rt></ruby>。
+                        <ruby>玛<rt>Mǎ</rt></ruby><ruby>丽<rt>lì</rt></ruby><ruby>说<rt>shuō</rt></ruby><ruby>她<rt>tā</rt></ruby><ruby>的<rt>de</rt></ruby><ruby>爱<rt>ài</rt></ruby><ruby>好<rt>hào</rt></ruby><ruby>是<rt>shì</rt></ruby><ruby>中<rt>Zhōng</rt></ruby><ruby>国<rt>guó</rt></ruby><ruby>书<rt>shū</rt></ruby><ruby>法<rt>fă</rt></ruby>，
+                        <ruby>她<rt>tā</rt></ruby><ruby>觉<rt>jué</rt></ruby><ruby>得<rt>de</rt></ruby><ruby>书<rt>shū</rt></ruby><ruby>法<rt>fă</rt></ruby><ruby>太<rt>tài</rt></ruby><ruby>有<rt>yǒu</rt></ruby><ruby>意<rt>yì</rt></ruby><ruby>思<rt>si</rt></ruby><ruby>了<rt>le</rt></ruby>。
+                        <ruby>安<rt>Ān</rt></ruby><ruby>娜<rt>nà</rt></ruby><ruby>喜<rt>xǐ</rt></ruby><ruby>欢<rt>huan</rt></ruby><ruby>看<rt>kàn</rt></ruby><ruby>京<rt>jīng</rt></ruby><ruby>剧<rt>jù</rt></ruby>，
+                        <ruby>她<rt>tā</rt></ruby><ruby>说<rt>shuō</rt></ruby><ruby>京<rt>jīng</rt></ruby><ruby>剧<rt>jù</rt></ruby><ruby>里<rt>li</rt></ruby><ruby>的<rt>de</rt></ruby><ruby>衣<rt>yī</rt></ruby><ruby>服<rt>fu</rt></ruby><ruby>真<rt>zhēn</rt></ruby><ruby>漂<rt>piào</rt></ruby><ruby>亮<rt>liang</rt></ruby>。
+                        <ruby>我<rt>Wǒ</rt></ruby><ruby>的<rt>de</rt></ruby><ruby>爱<rt>ài</rt></ruby><ruby>好<rt>hào</rt></ruby><ruby>是<rt>shì</rt></ruby><ruby>旅<rt>lǚ</rt></ruby><ruby>行<rt>xíng</rt></ruby>，
+                        <ruby>中<rt>Zhōng</rt></ruby><ruby>国<rt>guó</rt></ruby><ruby>有<rt>yǒu</rt></ruby><ruby>很<rt>hěn</rt></ruby><ruby>多<rt>duō</rt></ruby><ruby>好<rt>hăo</rt></ruby><ruby>玩<rt>wánr</rt></ruby><ruby>儿<rt></rt></ruby><ruby>的<rt>de</rt></ruby><ruby>地<rt>dì</rt></ruby><ruby>方<rt>fang</rt></ruby>，
+                        <ruby>上<rt>Shàng</rt></ruby><ruby>海<rt>hǎi</rt></ruby>、<ruby>西<rt>Xī</rt></ruby><ruby>安<rt>’ān</rt></ruby>、<ruby>杭<rt>Háng</rt></ruby><ruby>州<rt>zhōu</rt></ruby>、<ruby>桂<rt>Guì</rt></ruby><ruby>林<rt>lín</rt></ruby>...
+                        <ruby>啊<rt>a</rt></ruby>, <ruby>太<rt>tài</rt></ruby><ruby>多<rt>duō</rt></ruby><ruby>了<rt>le</rt></ruby>! 
+                        <ruby>这<rt>Zhè</rt></ruby><ruby>些<rt>xiē</rt></ruby><ruby>地<rt>dì</rt></ruby><ruby>方<rt>fang</rt></ruby><ruby>我<rt>wǒ</rt></ruby><ruby>都<rt>dōu</rt></ruby><ruby>想<rt>xiǎng</rt></ruby><ruby>去<rt>qù</rt></ruby>，<ruby>我<rt>wǒ</rt></ruby><ruby>一<rt>yí</rt></ruby><ruby>定<rt>dìng</rt></ruby><ruby>要<rt>yào</rt></ruby><ruby>去<rt>qù</rt></ruby>。
+                    </div>
+                </div>
+
+                <!-- Questions Reading -->
+                <div class="space-y-8">
+                    <div>
+                        <p class="font-semibold mb-2">1. 山田、安娜、玛丽在一个班学习吗?</p>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                            <label class="flex items-center space-x-3 p-3 border rounded-lg hover:bg-pink-50 cursor-pointer transition"><input type="radio" class="save-data" name="r1" value="A" data-question="r1"> <span>A. 不 (bù)</span></label>
+                            <label class="flex items-center space-x-3 p-3 border rounded-lg hover:bg-pink-50 cursor-pointer transition"><input type="radio" class="save-data" name="r1" value="B" data-question="r1"> <span>B. 是 (shì)</span></label>
+                            <label class="flex items-center space-x-3 p-3 border rounded-lg hover:bg-pink-50 cursor-pointer transition"><input type="radio" class="save-data" name="r1" value="C" data-question="r1"> <span>C. 山田和安娜是朋友</span></label>
+                            <label class="flex items-center space-x-3 p-3 border rounded-lg hover:bg-pink-50 cursor-pointer transition"><input type="radio" class="save-data" name="r1" value="D" data-question="r1"> <span>D. 玛丽和山田是朋友</span></label>
+                        </div>
+                    </div>
+                    <div>
+                        <p class="font-semibold mb-2">2. 山田有什么爱好?</p>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                            <label class="flex items-center space-x-3 p-3 border rounded-lg hover:bg-pink-50 cursor-pointer transition"><input type="radio" class="save-data" name="r2" value="A" data-question="r2"> <span>A. 中国书法</span></label>
+                            <label class="flex items-center space-x-3 p-3 border rounded-lg hover:bg-pink-50 cursor-pointer transition"><input type="radio" class="save-data" name="r2" value="B" data-question="r2"> <span>B. 中国功夫</span></label>
+                            <label class="flex items-center space-x-3 p-3 border rounded-lg hover:bg-pink-50 cursor-pointer transition"><input type="radio" class="save-data" name="r2" value="C" data-question="r2"> <span>C. 京剧</span></label>
+                            <label class="flex items-center space-x-3 p-3 border rounded-lg hover:bg-pink-50 cursor-pointer transition"><input type="radio" class="save-data" name="r2" value="D" data-question="r2"> <span>D. 旅行</span></label>
+                        </div>
+                    </div>
+                    <div>
+                        <p class="font-semibold mb-2">3. 玛丽喜欢什么?</p>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                            <label class="flex items-center space-x-3 p-3 border rounded-lg hover:bg-pink-50 cursor-pointer transition"><input type="radio" class="save-data" name="r3" value="A" data-question="r3"> <span>A. 中国书法</span></label>
+                            <label class="flex items-center space-x-3 p-3 border rounded-lg hover:bg-pink-50 cursor-pointer transition"><input type="radio" class="save-data" name="r3" value="B" data-question="r3"> <span>B. 中国功夫</span></label>
+                            <label class="flex items-center space-x-3 p-3 border rounded-lg hover:bg-pink-50 cursor-pointer transition"><input type="radio" class="save-data" name="r3" value="C" data-question="r3"> <span>C. 京剧</span></label>
+                            <label class="flex items-center space-x-3 p-3 border rounded-lg hover:bg-pink-50 cursor-pointer transition"><input type="radio" class="save-data" name="r3" value="D" data-question="r3"> <span>D. 旅行</span></label>
+                        </div>
+                    </div>
+                    <div>
+                        <p class="font-semibold mb-2">4. "我"喜欢什么?</p>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                            <label class="flex items-center space-x-3 p-3 border rounded-lg hover:bg-pink-50 cursor-pointer transition"><input type="radio" class="save-data" name="r4" value="A" data-question="r4"> <span>A. 中国书法</span></label>
+                            <label class="flex items-center space-x-3 p-3 border rounded-lg hover:bg-pink-50 cursor-pointer transition"><input type="radio" class="save-data" name="r4" value="B" data-question="r4"> <span>B. 中国功夫</span></label>
+                            <label class="flex items-center space-x-3 p-3 border rounded-lg hover:bg-pink-50 cursor-pointer transition"><input type="radio" class="save-data" name="r4" value="C" data-question="r4"> <span>C. 京剧</span></label>
+                            <label class="flex items-center space-x-3 p-3 border rounded-lg hover:bg-pink-50 cursor-pointer transition"><input type="radio" class="save-data" name="r4" value="D" data-question="r4"> <span>D. 旅行</span></label>
+                        </div>
+                    </div>
+                    <div>
+                        <p class="font-semibold mb-2">5. "我"想去哪儿旅游?</p>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                            <label class="flex items-center space-x-3 p-3 border rounded-lg hover:bg-pink-50 cursor-pointer transition"><input type="radio" class="save-data" name="r5" value="A" data-question="r5"> <span>A. 深圳 (Shēnzhèn)</span></label>
+                            <label class="flex items-center space-x-3 p-3 border rounded-lg hover:bg-pink-50 cursor-pointer transition"><input type="radio" class="save-data" name="r5" value="B" data-question="r5"> <span>B. 北京 (Běijīng)</span></label>
+                            <label class="flex items-center space-x-3 p-3 border rounded-lg hover:bg-pink-50 cursor-pointer transition"><input type="radio" class="save-data" name="r5" value="C" data-question="r5"> <span>C. 广州 (Guăngzhōu)</span></label>
+                            <label class="flex items-center space-x-3 p-3 border rounded-lg hover:bg-pink-50 cursor-pointer transition"><input type="radio" class="save-data" name="r5" value="D" data-question="r5"> <span>D. 上海 (Shanghăi)</span></label>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- === PART 3: TRANSLATION === -->
+            <section class="section-card p-6 md:p-8" data-name="Phần 3: Dịch Hán Việt">
+                <h3 class="text-xl font-bold text-rose-600 mb-6">III. Dịch các câu sau sang tiếng Việt</h3>
+                
+                <div class="space-y-8">
+                    <div id="p3-q1-container" class="group">
+                        <div class="flex items-start justify-between mb-2">
+                            <p class="chinese-font text-xl">1. <ruby>去<rt>qù</rt></ruby><ruby>哪儿<rt>năr</rt></ruby><ruby>买<rt>mǎi</rt></ruby><ruby>衣<rt>yī</rt></ruby><ruby>服<rt>fu</rt></ruby>? <ruby>当<rt>dāng</rt></ruby><ruby>然<rt>rán</rt></ruby><ruby>是<rt>shì</rt></ruby><ruby>去<rt>qù</rt></ruby><ruby>商<rt>shāng</rt></ruby><ruby>场<rt>chǎng</rt></ruby><ruby>或<rt>huò</rt></ruby><ruby>者<rt>zhě</rt></ruby><ruby>服<rt>fú</rt></ruby><ruby>装<rt>zhuāng</rt></ruby><ruby>店<rt>diàn</rt></ruby><ruby>了<rt>le</rt></ruby>。</p>
+                            <button onclick="toggleLocalPinyin('p3-q1-container', 'Câu 1 - Phần Dịch')" class="text-pink-300 hover:text-pink-500 transition p-2"><i class="fas fa-eye"></i></button>
+                        </div>
+                        <div class="text-gray-400 text-sm mb-2 italic">Gợi ý: Shop quần áo</div>
+                        <textarea class="save-data w-full border-2 border-gray-200 rounded-xl p-4 focus:outline-none focus:border-rose-400 focus:bg-rose-50 transition" rows="2" data-question="p3-q1" placeholder="Nhập câu dịch của bạn..."></textarea>
+                    </div>
+
+                    <div id="p3-q2-container" class="group">
+                        <div class="flex items-start justify-between mb-2">
+                            <p class="chinese-font text-xl">2. <ruby>上<rt>Shàng</rt></ruby><ruby>星<rt>xīng</rt></ruby><ruby>期<rt>qī</rt></ruby>, <ruby>玛<rt>Mǎ</rt></ruby><ruby>丽<rt>lì</rt></ruby><ruby>的<rt>de</rt></ruby><ruby>姐<rt>jiě</rt></ruby><ruby>姐<rt>jie</rt></ruby><ruby>来<rt>lái</rt></ruby><ruby>中<rt>Zhōng</rt></ruby><ruby>国<rt>guó</rt></ruby><ruby>了<rt>le</rt></ruby>, <ruby>玛<rt>Mǎ</rt></ruby><ruby>丽<rt>lì</rt></ruby><ruby>要<rt>yào</rt></ruby><ruby>跟<rt>gēn</rt></ruby><ruby>姐<rt>jiě</rt></ruby><ruby>姐<rt>jie</rt></ruby><ruby>去<rt>qù</rt></ruby><ruby>上<rt>Shàng</rt></ruby><ruby>海<rt>hǎi</rt></ruby><ruby>旅<rt>lǚ</rt></ruby><ruby>游<rt>yóu</rt></ruby>, <ruby>她<rt>tā</rt></ruby><ruby>给<rt>gěi</rt></ruby><ruby>姐<rt>jiě</rt></ruby><ruby>姐<rt>jie</rt></ruby><ruby>当<rt>dāng</rt></ruby><ruby>翻<rt>fān</rt></ruby><ruby>译<rt>yì</rt></ruby>。</p>
+                            <button onclick="toggleLocalPinyin('p3-q2-container', 'Câu 2 - Phần Dịch')" class="text-pink-300 hover:text-pink-500 transition p-2"><i class="fas fa-eye"></i></button>
+                        </div>
+                        <textarea class="save-data w-full border-2 border-gray-200 rounded-xl p-4 focus:outline-none focus:border-rose-400 focus:bg-rose-50 transition" rows="2" data-question="p3-q2" placeholder="Nhập câu dịch của bạn..."></textarea>
+                    </div>
+
+                    <div id="p3-q3-container" class="group">
+                        <div class="flex items-start justify-between mb-2">
+                            <p class="chinese-font text-xl">3. <ruby>很<rt>Hěn</rt></ruby><ruby>多<rt>duō</rt></ruby><ruby>中<rt>Zhōng</rt></ruby><ruby>国<rt>guó</rt></ruby><ruby>人<rt>rén</rt></ruby><ruby>常<rt>cháng</rt></ruby><ruby>常<rt>cháng</rt></ruby><ruby>早<rt>zǎo</rt></ruby><ruby>睡<rt>shuì</rt></ruby><ruby>早<rt>zǎo</rt></ruby><ruby>起<rt>qǐ</rt></ruby>, <ruby>他<rt>tā</rt></ruby><ruby>们<rt>men</rt></ruby><ruby>早<rt>zǎo</rt></ruby><ruby>上<rt>shang</rt></ruby><ruby>六<rt>liù</rt></ruby><ruby>点<rt>diǎn</rt></ruby><ruby>半<rt>bàn</rt></ruby><ruby>起<rt>qǐ</rt></ruby><ruby>床<rt>chuáng</rt></ruby>, <ruby>起<rt>qǐ</rt></ruby><ruby>床<rt>chuáng</rt></ruby><ruby>后<rt>hòu</rt></ruby><ruby>去<rt>qù</rt></ruby><ruby>操<rt>cāo</rt></ruby><ruby>场<rt>chǎng</rt></ruby><ruby>锻<rt>duàn</rt></ruby><ruby>炼<rt>liàn</rt></ruby><ruby>身<rt>shēn</rt></ruby><ruby>体<rt>tǐ</rt></ruby>。</p>
+                            <button onclick="toggleLocalPinyin('p3-q3-container', 'Câu 3 - Phần Dịch')" class="text-pink-300 hover:text-pink-500 transition p-2"><i class="fas fa-eye"></i></button>
+                        </div>
+                        <textarea class="save-data w-full border-2 border-gray-200 rounded-xl p-4 focus:outline-none focus:border-rose-400 focus:bg-rose-50 transition" rows="2" data-question="p3-q3" placeholder="Nhập câu dịch của bạn..."></textarea>
+                    </div>
+
+                    <div id="p3-q4-container" class="group">
+                        <div class="flex items-start justify-between mb-2">
+                            <p class="chinese-font text-xl">4. <ruby>我<rt>Wǒ</rt></ruby><ruby>是<rt>shì</rt></ruby><ruby>北<rt>Běi</rt></ruby><ruby>京<rt>jīng</rt></ruby><ruby>语<rt>yǔ</rt></ruby><ruby>言<rt>yán</rt></ruby><ruby>大<rt>dà</rt></ruby><ruby>学<rt>xué</rt></ruby><ruby>的<rt>de</rt></ruby><ruby>留<rt>liú</rt></ruby><ruby>学<rt>xué</rt></ruby><ruby>生<rt>shēng</rt></ruby>, <ruby>我<rt>wǒ</rt></ruby><ruby>们<rt>men</rt></ruby><ruby>的<rt>de</rt></ruby><ruby>学<rt>xué</rt></ruby><ruby>校<rt>xiào</rt></ruby><ruby>在<rt>zài</rt></ruby><ruby>北<rt>Běi</rt></ruby><ruby>京<rt>jīng</rt></ruby><ruby>的<rt>de</rt></ruby><ruby>西<rt>xī</rt></ruby><ruby>北<rt>běi</rt></ruby><ruby>部<rt>bù</rt></ruby>。 <ruby>学<rt>Xué</rt></ruby><ruby>校<rt>xiào</rt></ruby><ruby>附<rt>fù</rt></ruby><ruby>近<rt>jìn</rt></ruby><ruby>有<rt>yǒu</rt></ruby><ruby>不<rt>bù</rt></ruby><ruby>少<rt>shǎo</rt></ruby><ruby>大<rt>dà</rt></ruby><ruby>学<rt>xué</rt></ruby>。</p>
+                            <button onclick="toggleLocalPinyin('p3-q4-container', 'Câu 4 - Phần Dịch')" class="text-pink-300 hover:text-pink-500 transition p-2"><i class="fas fa-eye"></i></button>
+                        </div>
+                        <textarea class="save-data w-full border-2 border-gray-200 rounded-xl p-4 focus:outline-none focus:border-rose-400 focus:bg-rose-50 transition" rows="2" data-question="p3-q4" placeholder="Nhập câu dịch của bạn..."></textarea>
+                    </div>
+                </div>
+            </section>
+
+            <!-- === PART 4: LISTENING === -->
+            <section class="section-card p-6 md:p-8" data-name="Phần 4: Nghe hiểu">
+                <h3 class="text-xl font-bold text-rose-600 mb-6">IV. Nghe hiểu (听力)</h3>
+                
+                <!-- Part A -->
+                <div class="bg-rose-50/50 p-6 rounded-2xl mb-8 border border-rose-100">
+                    <div class="flex items-center justify-between mb-4">
+                        <h4 class="font-bold text-gray-800">A. Nghe đoạn hội thoại (Bài 22)</h4>
+                        <span class="text-xs font-bold text-rose-500 bg-rose-100 px-2 py-1 rounded">Chỉ nghe được 2 lần - Không thể dừng</span>
+                    </div>
+                    
+                    <!-- Audio Player A -->
+                    <div class="bg-white p-4 rounded-xl shadow-sm flex items-center gap-4 mb-6">
+                        <audio id="audioA" preload="metadata">
+                            <source src="https://res.cloudinary.com/dylnm79id/video/upload/v1764250502/%C4%90E%CC%82%CC%80_KIE%CC%82%CC%89M_TRA_CUO%CC%82%CC%81I_KY%CC%80_-_C2_-_PHA%CC%82%CC%80N_A_h47efz.mp3" type="audio/mpeg">
+                        </audio>
+                        <button id="btnPlayA" onclick="playAudio('A')" class="w-12 h-12 bg-rose-500 rounded-full text-white flex items-center justify-center hover:bg-rose-600 shadow-md transition transform active:scale-95">
+                            <i class="fas fa-play" id="iconA"></i>
+                        </button>
+                        <div class="flex-1">
+                            <div class="h-2 bg-gray-200 rounded-full overflow-hidden">
+                                <div id="progressA" class="audio-progress-bar h-full bg-rose-400 w-0"></div>
+                            </div>
+                        </div>
+                        <div class="text-sm font-bold text-gray-500">
+                            Còn lại: <span id="countA" class="text-rose-600">2</span> lượt
+                        </div>
+                    </div>
+
+                    <div class="space-y-6 pl-2">
+                        <!-- Q1 -->
+                        <div>
+                            <span class="font-bold mr-2 text-rose-500">1.</span>
+                            <div class="grid grid-cols-2 gap-2 mt-2">
+                                <label class="flex items-center space-x-2"><input type="radio" class="save-data" name="la1" value="A" data-question="la1"> <span>A. 去美国</span></label>
+                                <label class="flex items-center space-x-2"><input type="radio" class="save-data" name="la1" value="B" data-question="la1"> <span>B. 当翻译</span></label>
+                                <label class="flex items-center space-x-2"><input type="radio" class="save-data" name="la1" value="C" data-question="la1"> <span>C. 当老师</span></label>
+                                <label class="flex items-center space-x-2"><input type="radio" class="save-data" name="la1" value="D" data-question="la1"> <span>D. 没有想过</span></label>
+                            </div>
+                        </div>
+                        <!-- Q2 -->
+                        <div>
+                            <span class="font-bold mr-2 text-rose-500">2.</span>
+                            <div class="grid grid-cols-2 gap-2 mt-2">
+                                <label class="flex items-center space-x-2"><input type="radio" class="save-data" name="la2" value="A" data-question="la2"> <span>A. 张明 (Zhāngmíng)</span></label>
+                                <label class="flex items-center space-x-2"><input type="radio" class="save-data" name="la2" value="B" data-question="la2"> <span>B. 张东 (Zhāngdōng)</span></label>
+                                <label class="flex items-center space-x-2"><input type="radio" class="save-data" name="la2" value="C" data-question="la2"> <span>C. 经理 (jīnglǐ)</span></label>
+                                <label class="flex items-center space-x-2"><input type="radio" class="save-data" name="la2" value="D" data-question="la2"> <span>D. 王明 (Wángmíng)</span></label>
+                            </div>
+                        </div>
+                        <!-- Q3 -->
+                        <div>
+                            <span class="font-bold mr-2 text-rose-500">3.</span>
+                            <div class="grid grid-cols-1 gap-2 mt-2">
+                                <label class="flex items-center space-x-2"><input type="radio" class="save-data" name="la3" value="A" data-question="la3"> <span>A. 去看京剧 (Đi xem kinh kịch)</span></label>
+                                <label class="flex items-center space-x-2"><input type="radio" class="save-data" name="la3" value="B" data-question="la3"> <span>B. 问山本去不去看京剧 (Hỏi Yamamoto có đi không)</span></label>
+                                <label class="flex items-center space-x-2"><input type="radio" class="save-data" name="la3" value="C" data-question="la3"> <span>C. 问山本喜欢不喜欢京剧 (Hỏi Yamamoto có thích không)</span></label>
+                                <label class="flex items-center space-x-2"><input type="radio" class="save-data" name="la3" value="D" data-question="la3"> <span>D. 让麦克不要去看京剧 (Bảo Mike đừng đi)</span></label>
+                            </div>
+                        </div>
+                        <!-- Q4 -->
+                        <div>
+                            <span class="font-bold mr-2 text-rose-500">4.</span>
+                            <div class="grid grid-cols-1 gap-2 mt-2">
+                                <label class="flex items-center space-x-2"><input type="radio" class="save-data" name="la4" value="A" data-question="la4"> <span>A. 以前喜欢,现在不喜欢 (Trước thích, giờ không)</span></label>
+                                <label class="flex items-center space-x-2"><input type="radio" class="save-data" name="la4" value="B" data-question="la4"> <span>B. 以前不喜欢,现在喜欢 (Trước không, giờ thích)</span></label>
+                                <label class="flex items-center space-x-2"><input type="radio" class="save-data" name="la4" value="C" data-question="la4"> <span>C. 一直很喜欢 (Luôn rất thích)</span></label>
+                                <label class="flex items-center space-x-2"><input type="radio" class="save-data" name="la4" value="D" data-question="la4"> <span>D. 一直都不喜欢 (Luôn không thích)</span></label>
+                            </div>
+                        </div>
+                        <!-- Q5 -->
+                        <div>
+                            <span class="font-bold mr-2 text-rose-500">5.</span>
+                            <div class="grid grid-cols-1 gap-2 mt-2">
+                                <label class="flex items-center space-x-2"><input type="radio" class="save-data" name="la5" value="A" data-question="la5"> <span>A. 女的给男的买的 (Nữ mua cho Nam)</span></label>
+                                <label class="flex items-center space-x-2"><input type="radio" class="save-data" name="la5" value="B" data-question="la5"> <span>B. 男的给女的买的 (Nam mua cho Nữ)</span></label>
+                                <label class="flex items-center space-x-2"><input type="radio" class="save-data" name="la5" value="C" data-question="la5"> <span>C. 玛丽给女的买的 (Mary mua cho Nữ)</span></label>
+                                <label class="flex items-center space-x-2"><input type="radio" class="save-data" name="la5" value="D" data-question="la5"> <span>D. 女的给玛丽买的 (Nữ mua cho Mary)</span></label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Part B -->
+                <div class="bg-blue-50/50 p-6 rounded-2xl border border-blue-100">
+                    <div class="flex items-center justify-between mb-4">
+                        <h4 class="font-bold text-gray-800">B. Nghe đoạn hội thoại (Bài 21)</h4>
+                        <span class="text-xs font-bold text-blue-500 bg-blue-100 px-2 py-1 rounded">Chỉ nghe được 2 lần - Không thể dừng</span>
+                    </div>
+
+                    <!-- Audio Player B -->
+                    <div class="bg-white p-4 rounded-xl shadow-sm flex items-center gap-4 mb-6">
+                        <audio id="audioB" preload="metadata">
+                            <source src="https://res.cloudinary.com/dylnm79id/video/upload/v1764250502/%C4%90E%CC%82%CC%80_KIE%CC%82%CC%89M_TRA_CUO%CC%82%CC%81I_KY%CC%80_-_C2_-_PHA%CC%82%CC%80N_B_onsqp0.mp3" type="audio/mpeg">
+                        </audio>
+                        <button id="btnPlayB" onclick="playAudio('B')" class="w-12 h-12 bg-blue-500 rounded-full text-white flex items-center justify-center hover:bg-blue-600 shadow-md transition transform active:scale-95">
+                            <i class="fas fa-play" id="iconB"></i>
+                        </button>
+                        <div class="flex-1">
+                            <div class="h-2 bg-gray-200 rounded-full overflow-hidden">
+                                <div id="progressB" class="audio-progress-bar h-full bg-blue-400 w-0"></div>
+                            </div>
+                        </div>
+                        <div class="text-sm font-bold text-gray-500">
+                            Còn lại: <span id="countB" class="text-blue-600">2</span> lượt
+                        </div>
+                    </div>
+                    
+                    <!-- B.1 -->
+                    <div class="mb-6 pl-2">
+                        <p class="font-semibold text-blue-800 mb-2">Đoạn 1:</p>
+                        <div class="space-y-2">
+                            <div class="flex justify-between items-center border-b border-dashed border-gray-200 py-1">
+                                <span>1. 玛丽每天七点起床。</span>
+                                <div class="space-x-4"><label>✓ <input type="radio" class="save-data" name="lb1_1" value="T" data-question="lb1_1"></label> <label>✗ <input type="radio" class="save-data" name="lb1_1" value="F" data-question="lb1_1"></label></div>
+                            </div>
+                            <div class="flex justify-between items-center border-b border-dashed border-gray-200 py-1">
+                                <span>2. 玛丽每天七点半来教室。</span>
+                                <div class="space-x-4"><label>✓ <input type="radio" class="save-data" name="lb1_2" value="T" data-question="lb1_2"></label> <label>✗ <input type="radio" class="save-data" name="lb1_2" value="F" data-question="lb1_2"></label></div>
+                            </div>
+                            <div class="flex justify-between items-center border-b border-dashed border-gray-200 py-1">
+                                <span>3. 玛丽每天早上锻炼身体。</span>
+                                <div class="space-x-4"><label>✓ <input type="radio" class="save-data" name="lb1_3" value="T" data-question="lb1_3"></label> <label>✗ <input type="radio" class="save-data" name="lb1_3" value="F" data-question="lb1_3"></label></div>
+                            </div>
+                            <div class="flex justify-between items-center border-b border-dashed border-gray-200 py-1">
+                                <span>4. 玛丽晚上十二点半睡觉。</span>
+                                <div class="space-x-4"><label>✓ <input type="radio" class="save-data" name="lb1_4" value="T" data-question="lb1_4"></label> <label>✗ <input type="radio" class="save-data" name="lb1_4" value="F" data-question="lb1_4"></label></div>
+                            </div>
+                            <div class="flex justify-between items-center border-b border-dashed border-gray-200 py-1">
+                                <span>5. 麦克每天八点一刻起床。</span>
+                                <div class="space-x-4"><label>✓ <input type="radio" class="save-data" name="lb1_5" value="T" data-question="lb1_5"></label> <label>✗ <input type="radio" class="save-data" name="lb1_5" value="F" data-question="lb1_5"></label></div>
+                            </div>
+                            <div class="flex justify-between items-center border-b border-dashed border-gray-200 py-1">
+                                <span>6. 麦克每天早上不吃早饭。</span>
+                                <div class="space-x-4"><label>✓ <input type="radio" class="save-data" name="lb1_6" value="T" data-question="lb1_6"></label> <label>✗ <input type="radio" class="save-data" name="lb1_6" value="F" data-question="lb1_6"></label></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- B.2 -->
+                    <div class="pl-2">
+                        <p class="font-semibold text-blue-800 mb-2">Đoạn 2:</p>
+                        <div class="space-y-2">
+                            <div class="flex justify-between items-center border-b border-dashed border-gray-200 py-1">
+                                <span>1. 玛丽坐十二点半的飞机去上海。</span>
+                                <div class="space-x-4"><label>✓ <input type="radio" class="save-data" name="lb2_1" value="T" data-question="lb2_1"></label> <label>✗ <input type="radio" class="save-data" name="lb2_1" value="F" data-question="lb2_1"></label></div>
+                            </div>
+                            <div class="flex justify-between items-center border-b border-dashed border-gray-200 py-1">
+                                <span>2. 现在九点一刻。</span>
+                                <div class="space-x-4"><label>✓ <input type="radio" class="save-data" name="lb2_2" value="T" data-question="lb2_2"></label> <label>✗ <input type="radio" class="save-data" name="lb2_2" value="F" data-question="lb2_2"></label></div>
+                            </div>
+                            <div class="flex justify-between items-center border-b border-dashed border-gray-200 py-1">
+                                <span>3. 玛丽准备差一刻九点出发。</span>
+                                <div class="space-x-4"><label>✓ <input type="radio" class="save-data" name="lb2_3" value="T" data-question="lb2_3"></label> <label>✗ <input type="radio" class="save-data" name="lb2_3" value="F" data-question="lb2_3"></label></div>
+                            </div>
+                            <div class="flex justify-between items-center border-b border-dashed border-gray-200 py-1">
+                                <span>4. 男的觉得应该十点出发。</span>
+                                <div class="space-x-4"><label>✓ <input type="radio" class="save-data" name="lb2_4" value="T" data-question="lb2_4"></label> <label>✗ <input type="radio" class="save-data" name="lb2_4" value="F" data-question="lb2_4"></label></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Submit Button -->
+            <div class="text-center pt-8 pb-12">
+                <button onclick="submitExam()" class="bg-gradient-to-r from-rose-400 to-pink-500 hover:from-rose-500 hover:to-pink-600 text-white font-bold py-4 px-12 rounded-full shadow-lg transform hover:scale-105 transition duration-200 text-lg flex items-center gap-2 mx-auto">
+                    <span>Nộp Bài (交卷)</span>
+                    <i class="fas fa-paper-plane"></i>
                 </button>
             </div>
-            
-            <div class="bg-blue-50/80 p-6 rounded-2xl border border-blue-100 mb-8 relative shadow-sm" id="reading-text">
-                <div class="chinese-font text-gray-800 text-justify">
-                    <ruby>山<rt>Shān</rt></ruby><ruby>田<rt>tián</rt></ruby>、<ruby>安<rt>Ān</rt></ruby><ruby>娜<rt>nà</rt></ruby>和<ruby>玛<rt>Mă</rt></ruby><ruby>丽<rt>lì</rt></ruby>是<ruby>我<rt>wǒ</rt></ruby>的<ruby>同<rt>tóng</rt></ruby><ruby>班<rt>bān</rt></ruby><ruby>同<rt>tóng</rt></ruby><ruby>学<rt>xué</rt></ruby>。
-                    <ruby>我<rt>wǒ</rt></ruby><ruby>们<rt>men</rt></ruby><ruby>常<rt>cháng</rt></ruby><ruby>常<rt>cháng</rt></ruby><ruby>一<rt>yì</rt></ruby><ruby>起<rt>qǐ</rt></ruby><ruby>聊<rt>liáo</rt></ruby><ruby>天<rt>tiānr</rt></ruby><ruby>儿<rt></rt></ruby>。
-                    <ruby>山<rt>Shān</rt></ruby><ruby>田<rt>tián</rt></ruby><ruby>说<rt>shuō</rt></ruby><ruby>他<rt>tā</rt></ruby><ruby>喜<rt>xǐ</rt></ruby><ruby>欢<rt>huan</rt></ruby><ruby>中<rt>Zhōng</rt></ruby><ruby>国<rt>guó</rt></ruby><ruby>功<rt>gōng</rt></ruby><ruby>夫<rt>fu</rt></ruby>，
-                    <ruby>他<rt>tā</rt></ruby><ruby>每<rt>měi</rt></ruby><ruby>天<rt>tiān</rt></ruby><ruby>都<rt>dōu</rt></ruby><ruby>练<rt>liàn</rt></ruby><ruby>习<rt>xí</rt></ruby>。
-                    <ruby>玛<rt>Mǎ</rt></ruby><ruby>丽<rt>lì</rt></ruby><ruby>说<rt>shuō</rt></ruby><ruby>她<rt>tā</rt></ruby><ruby>的<rt>de</rt></ruby><ruby>爱<rt>ài</rt></ruby><ruby>好<rt>hào</rt></ruby><ruby>是<rt>shì</rt></ruby><ruby>中<rt>Zhōng</rt></ruby><ruby>国<rt>guó</rt></ruby><ruby>书<rt>shū</rt></ruby><ruby>法<rt>fă</rt></ruby>，
-                    <ruby>她<rt>tā</rt></ruby><ruby>觉<rt>jué</rt></ruby><ruby>得<rt>de</rt></ruby><ruby>书<rt>shū</rt></ruby><ruby>法<rt>fă</rt></ruby><ruby>太<rt>tài</rt></ruby><ruby>有<rt>yǒu</rt></ruby><ruby>意<rt>yì</rt></ruby><ruby>思<rt>si</rt></ruby><ruby>了<rt>le</rt></ruby>。
-                    <ruby>安<rt>Ān</rt></ruby><ruby>娜<rt>nà</rt></ruby><ruby>喜<rt>xǐ</rt></ruby><ruby>欢<rt>huan</rt></ruby><ruby>看<rt>kàn</rt></ruby><ruby>京<rt>jīng</rt></ruby><ruby>剧<rt>jù</rt></ruby>，
-                    <ruby>她<rt>tā</rt></ruby><ruby>说<rt>shuō</rt></ruby><ruby>京<rt>jīng</rt></ruby><ruby>剧<rt>jù</rt></ruby><ruby>里<rt>li</rt></ruby><ruby>的<rt>de</rt></ruby><ruby>衣<rt>yī</rt></ruby><ruby>服<rt>fu</rt></ruby><ruby>真<rt>zhēn</rt></ruby><ruby>漂<rt>piào</rt></ruby><ruby>亮<rt>liang</rt></ruby>。
-                    <ruby>我<rt>Wǒ</rt></ruby><ruby>的<rt>de</rt></ruby><ruby>爱<rt>ài</rt></ruby><ruby>好<rt>hào</rt></ruby><ruby>是<rt>shì</rt></ruby><ruby>旅<rt>lǚ</rt></ruby><ruby>行<rt>xíng</rt></ruby>，
-                    <ruby>中<rt>Zhōng</rt></ruby><ruby>国<rt>guó</rt></ruby><ruby>有<rt>yǒu</rt></ruby><ruby>很<rt>hěn</rt></ruby><ruby>多<rt>duō</rt></ruby><ruby>好<rt>hăo</rt></ruby><ruby>玩<rt>wánr</rt></ruby><ruby>儿<rt></rt></ruby><ruby>的<rt>de</rt></ruby><ruby>地<rt>dì</rt></ruby><ruby>方<rt>fang</rt></ruby>，
-                    <ruby>上<rt>Shàng</rt></ruby><ruby>海<rt>hǎi</rt></ruby>、<ruby>西<rt>Xī</rt></ruby><ruby>安<rt>’ān</rt></ruby>、<ruby>杭<rt>Háng</rt></ruby><ruby>州<rt>zhōu</rt></ruby>、<ruby>桂<rt>Guì</rt></ruby><ruby>林<rt>lín</rt></ruby>...
-                    <ruby>啊<rt>a</rt></ruby>, <ruby>太<rt>tài</rt></ruby><ruby>多<rt>duō</rt></ruby><ruby>了<rt>le</rt></ruby>! 
-                    <ruby>这<rt>Zhè</rt></ruby><ruby>些<rt>xiē</rt></ruby><ruby>地<rt>dì</rt></ruby><ruby>方<rt>fang</rt></ruby><ruby>我<rt>wǒ</rt></ruby><ruby>都<rt>dōu</rt></ruby><ruby>想<rt>xiǎng</rt></ruby><ruby>去<rt>qù</rt></ruby>，<ruby>我<rt>wǒ</rt></ruby><ruby>一<rt>yí</rt></ruby><ruby>定<rt>dìng</rt></ruby><ruby>要<rt>yào</rt></ruby><ruby>去<rt>qù</rt></ruby>。
-                </div>
-            </div>
 
-            <!-- Questions Reading -->
-            <div class="space-y-8">
-                 <div>
-                    <p class="font-semibold mb-2">1. 山田、安娜、玛丽在一个班学习吗?</p>
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-                        <label class="flex items-center space-x-3 p-3 border rounded-lg hover:bg-pink-50 cursor-pointer transition"><input type="radio" name="r1" value="A"> <span>A. 不 (bù)</span></label>
-                        <label class="flex items-center space-x-3 p-3 border rounded-lg hover:bg-pink-50 cursor-pointer transition"><input type="radio" name="r1" value="B"> <span>B. 是 (shì)</span></label>
-                        <label class="flex items-center space-x-3 p-3 border rounded-lg hover:bg-pink-50 cursor-pointer transition"><input type="radio" name="r1" value="C"> <span>C. 山田和安娜是朋友</span></label>
-                        <label class="flex items-center space-x-3 p-3 border rounded-lg hover:bg-pink-50 cursor-pointer transition"><input type="radio" name="r1" value="D"> <span>D. 玛丽和山田是朋友</span></label>
-                    </div>
-                </div>
-                <div>
-                    <p class="font-semibold mb-2">2. 山田有什么爱好?</p>
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-                        <label class="flex items-center space-x-3 p-3 border rounded-lg hover:bg-pink-50 cursor-pointer transition"><input type="radio" name="r2" value="A"> <span>A. 中国书法</span></label>
-                        <label class="flex items-center space-x-3 p-3 border rounded-lg hover:bg-pink-50 cursor-pointer transition"><input type="radio" name="r2" value="B"> <span>B. 中国功夫</span></label>
-                        <label class="flex items-center space-x-3 p-3 border rounded-lg hover:bg-pink-50 cursor-pointer transition"><input type="radio" name="r2" value="C"> <span>C. 京剧</span></label>
-                        <label class="flex items-center space-x-3 p-3 border rounded-lg hover:bg-pink-50 cursor-pointer transition"><input type="radio" name="r2" value="D"> <span>D. 旅行</span></label>
-                    </div>
-                </div>
-                <div>
-                    <p class="font-semibold mb-2">3. 玛丽喜欢什么?</p>
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-                        <label class="flex items-center space-x-3 p-3 border rounded-lg hover:bg-pink-50 cursor-pointer transition"><input type="radio" name="r3" value="A"> <span>A. 中国书法</span></label>
-                        <label class="flex items-center space-x-3 p-3 border rounded-lg hover:bg-pink-50 cursor-pointer transition"><input type="radio" name="r3" value="B"> <span>B. 中国功夫</span></label>
-                        <label class="flex items-center space-x-3 p-3 border rounded-lg hover:bg-pink-50 cursor-pointer transition"><input type="radio" name="r3" value="C"> <span>C. 京剧</span></label>
-                        <label class="flex items-center space-x-3 p-3 border rounded-lg hover:bg-pink-50 cursor-pointer transition"><input type="radio" name="r3" value="D"> <span>D. 旅行</span></label>
-                    </div>
-                </div>
-                <div>
-                    <p class="font-semibold mb-2">4. “我”喜欢什么?</p>
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-                        <label class="flex items-center space-x-3 p-3 border rounded-lg hover:bg-pink-50 cursor-pointer transition"><input type="radio" name="r4" value="A"> <span>A. 中国书法</span></label>
-                        <label class="flex items-center space-x-3 p-3 border rounded-lg hover:bg-pink-50 cursor-pointer transition"><input type="radio" name="r4" value="B"> <span>B. 中国功夫</span></label>
-                        <label class="flex items-center space-x-3 p-3 border rounded-lg hover:bg-pink-50 cursor-pointer transition"><input type="radio" name="r4" value="C"> <span>C. 京剧</span></label>
-                        <label class="flex items-center space-x-3 p-3 border rounded-lg hover:bg-pink-50 cursor-pointer transition"><input type="radio" name="r4" value="D"> <span>D. 旅行</span></label>
-                    </div>
-                </div>
-                <div>
-                    <p class="font-semibold mb-2">5. “我”想去哪儿旅游?</p>
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-                        <label class="flex items-center space-x-3 p-3 border rounded-lg hover:bg-pink-50 cursor-pointer transition"><input type="radio" name="r5" value="A"> <span>A. 深圳 (Shēnzhèn)</span></label>
-                        <label class="flex items-center space-x-3 p-3 border rounded-lg hover:bg-pink-50 cursor-pointer transition"><input type="radio" name="r5" value="B"> <span>B. 北京 (Běijīng)</span></label>
-                        <label class="flex items-center space-x-3 p-3 border rounded-lg hover:bg-pink-50 cursor-pointer transition"><input type="radio" name="r5" value="C"> <span>C. 广州 (Guăngzhōu)</span></label>
-                        <label class="flex items-center space-x-3 p-3 border rounded-lg hover:bg-pink-50 cursor-pointer transition"><input type="radio" name="r5" value="D"> <span>D. 上海 (Shanghăi)</span></label>
-                    </div>
-                </div>
-            </div>
-        </section>
+        </main>
+    </div>
 
-        <!-- === PART 3: TRANSLATION === -->
-        <section class="section-card p-6 md:p-8" data-name="Phần 3: Dịch Hán Việt">
-            <h3 class="text-xl font-bold text-rose-600 mb-6">III. Dịch các câu sau sang tiếng Việt</h3>
-            
-            <div class="space-y-8">
-                <div id="p3-q1-container" class="group">
-                    <div class="flex items-start justify-between mb-2">
-                        <p class="chinese-font text-xl">1. <ruby>去<rt>qù</rt></ruby><ruby>哪儿<rt>năr</rt></ruby><ruby>买<rt>mǎi</rt></ruby><ruby>衣<rt>yī</rt></ruby><ruby>服<rt>fu</rt></ruby>? <ruby>当<rt>dāng</rt></ruby><ruby>然<rt>rán</rt></ruby><ruby>是<rt>shì</rt></ruby><ruby>去<rt>qù</rt></ruby><ruby>商<rt>shāng</rt></ruby><ruby>场<rt>chǎng</rt></ruby><ruby>或<rt>huò</rt></ruby><ruby>者<rt>zhě</rt></ruby><ruby>服<rt>fú</rt></ruby><ruby>装<rt>zhuāng</rt></ruby><ruby>店<rt>diàn</rt></ruby><ruby>了<rt>le</rt></ruby>。</p>
-                        <button onclick="toggleLocalPinyin('p3-q1-container', 'Câu 1 - Phần Dịch')" class="text-pink-300 hover:text-pink-500 transition p-2"><i class="fas fa-eye"></i></button>
-                    </div>
-                    <div class="text-gray-400 text-sm mb-2 italic">Gợi ý: Shop quần áo</div>
-                    <textarea class="w-full border-2 border-gray-200 rounded-xl p-4 focus:outline-none focus:border-rose-400 focus:bg-rose-50 transition" rows="2" placeholder="Nhập câu dịch của bạn..."></textarea>
-                </div>
-
-                <div id="p3-q2-container" class="group">
-                    <div class="flex items-start justify-between mb-2">
-                        <p class="chinese-font text-xl">2. <ruby>上<rt>Shàng</rt></ruby><ruby>星<rt>xīng</rt></ruby><ruby>期<rt>qī</rt></ruby>, <ruby>玛<rt>Mǎ</rt></ruby><ruby>丽<rt>lì</rt></ruby><ruby>的<rt>de</rt></ruby><ruby>姐<rt>jiě</rt></ruby><ruby>姐<rt>jie</rt></ruby><ruby>来<rt>lái</rt></ruby><ruby>中<rt>Zhōng</rt></ruby><ruby>国<rt>guó</rt></ruby><ruby>了<rt>le</rt></ruby>, <ruby>玛<rt>Mǎ</rt></ruby><ruby>丽<rt>lì</rt></ruby><ruby>要<rt>yào</rt></ruby><ruby>跟<rt>gēn</rt></ruby><ruby>姐<rt>jiě</rt></ruby><ruby>姐<rt>jie</rt></ruby><ruby>去<rt>qù</rt></ruby><ruby>上<rt>Shàng</rt></ruby><ruby>海<rt>hǎi</rt></ruby><ruby>旅<rt>lǚ</rt></ruby><ruby>游<rt>yóu</rt></ruby>, <ruby>她<rt>tā</rt></ruby><ruby>给<rt>gěi</rt></ruby><ruby>姐<rt>jiě</rt></ruby><ruby>姐<rt>jie</rt></ruby><ruby>当<rt>dāng</rt></ruby><ruby>翻<rt>fān</rt></ruby><ruby>译<rt>yì</rt></ruby>。</p>
-                        <button onclick="toggleLocalPinyin('p3-q2-container', 'Câu 2 - Phần Dịch')" class="text-pink-300 hover:text-pink-500 transition p-2"><i class="fas fa-eye"></i></button>
-                    </div>
-                    <textarea class="w-full border-2 border-gray-200 rounded-xl p-4 focus:outline-none focus:border-rose-400 focus:bg-rose-50 transition" rows="2" placeholder="Nhập câu dịch của bạn..."></textarea>
-                </div>
-
-                <div id="p3-q3-container" class="group">
-                    <div class="flex items-start justify-between mb-2">
-                        <p class="chinese-font text-xl">3. <ruby>很<rt>Hěn</rt></ruby><ruby>多<rt>duō</rt></ruby><ruby>中<rt>Zhōng</rt></ruby><ruby>国<rt>guó</rt></ruby><ruby>人<rt>rén</rt></ruby><ruby>常<rt>cháng</rt></ruby><ruby>常<rt>cháng</rt></ruby><ruby>早<rt>zǎo</rt></ruby><ruby>睡<rt>shuì</rt></ruby><ruby>早<rt>zǎo</rt></ruby><ruby>起<rt>qǐ</rt></ruby>, <ruby>他<rt>tā</rt></ruby><ruby>们<rt>men</rt></ruby><ruby>早<rt>zǎo</rt></ruby><ruby>上<rt>shang</rt></ruby><ruby>六<rt>liù</rt></ruby><ruby>点<rt>diǎn</rt></ruby><ruby>半<rt>bàn</rt></ruby><ruby>起<rt>qǐ</rt></ruby><ruby>床<rt>chuáng</rt></ruby>, <ruby>起<rt>qǐ</rt></ruby><ruby>床<rt>chuáng</rt></ruby><ruby>后<rt>hòu</rt></ruby><ruby>去<rt>qù</rt></ruby><ruby>操<rt>cāo</rt></ruby><ruby>场<rt>chǎng</rt></ruby><ruby>锻<rt>duàn</rt></ruby><ruby>炼<rt>liàn</rt></ruby><ruby>身<rt>shēn</rt></ruby><ruby>体<rt>tǐ</rt></ruby>。</p>
-                        <button onclick="toggleLocalPinyin('p3-q3-container', 'Câu 3 - Phần Dịch')" class="text-pink-300 hover:text-pink-500 transition p-2"><i class="fas fa-eye"></i></button>
-                    </div>
-                    <textarea class="w-full border-2 border-gray-200 rounded-xl p-4 focus:outline-none focus:border-rose-400 focus:bg-rose-50 transition" rows="2" placeholder="Nhập câu dịch của bạn..."></textarea>
-                </div>
-
-                <div id="p3-q4-container" class="group">
-                     <div class="flex items-start justify-between mb-2">
-                        <p class="chinese-font text-xl">4. <ruby>我<rt>Wǒ</rt></ruby><ruby>是<rt>shì</rt></ruby><ruby>北<rt>Běi</rt></ruby><ruby>京<rt>jīng</rt></ruby><ruby>语<rt>yǔ</rt></ruby><ruby>言<rt>yán</rt></ruby><ruby>大<rt>dà</rt></ruby><ruby>学<rt>xué</rt></ruby><ruby>的<rt>de</rt></ruby><ruby>留<rt>liú</rt></ruby><ruby>学<rt>xué</rt></ruby><ruby>生<rt>shēng</rt></ruby>, <ruby>我<rt>wǒ</rt></ruby><ruby>们<rt>men</rt></ruby><ruby>的<rt>de</rt></ruby><ruby>学<rt>xué</rt></ruby><ruby>校<rt>xiào</rt></ruby><ruby>在<rt>zài</rt></ruby><ruby>北<rt>Běi</rt></ruby><ruby>京<rt>jīng</rt></ruby><ruby>的<rt>de</rt></ruby><ruby>西<rt>xī</rt></ruby><ruby>北<rt>běi</rt></ruby><ruby>部<rt>bù</rt></ruby>。 <ruby>学<rt>Xué</rt></ruby><ruby>校<rt>xiào</rt></ruby><ruby>附<rt>fù</rt></ruby><ruby>近<rt>jìn</rt></ruby><ruby>有<rt>yǒu</rt></ruby><ruby>不<rt>bù</rt></ruby><ruby>少<rt>shǎo</rt></ruby><ruby>大<rt>dà</rt></ruby><ruby>学<rt>xué</rt></ruby>。</p>
-                         <button onclick="toggleLocalPinyin('p3-q4-container', 'Câu 4 - Phần Dịch')" class="text-pink-300 hover:text-pink-500 transition p-2"><i class="fas fa-eye"></i></button>
-                    </div>
-                    <textarea class="w-full border-2 border-gray-200 rounded-xl p-4 focus:outline-none focus:border-rose-400 focus:bg-rose-50 transition" rows="2" placeholder="Nhập câu dịch của bạn..."></textarea>
-                </div>
-            </div>
-        </section>
-
-        <!-- === PART 4: LISTENING === -->
-        <section class="section-card p-6 md:p-8" data-name="Phần 4: Nghe hiểu">
-            <h3 class="text-xl font-bold text-rose-600 mb-6">IV. Nghe hiểu (听力)</h3>
-            
-            <!-- Part A -->
-            <div class="bg-rose-50/50 p-6 rounded-2xl mb-8 border border-rose-100">
-                <div class="flex items-center justify-between mb-4">
-                    <h4 class="font-bold text-gray-800">A. Nghe đoạn hội thoại (Bài 22)</h4>
-                    <span class="text-xs font-bold text-rose-500 bg-rose-100 px-2 py-1 rounded">Chỉ nghe được 2 lần - Không thể dừng</span>
-                </div>
-                
-                <!-- Audio Player A -->
-                <div class="bg-white p-4 rounded-xl shadow-sm flex items-center gap-4 mb-6">
-                    <audio id="audioA" preload="metadata">
-                        <source src="https://res.cloudinary.com/dylnm79id/video/upload/v1764250502/%C4%90E%CC%82%CC%80_KIE%CC%82%CC%89M_TRA_CUO%CC%82%CC%81I_KY%CC%80_-_C2_-_PHA%CC%82%CC%80N_A_h47efz.mp3" type="audio/mpeg">
-                    </audio>
-                    <button id="btnPlayA" onclick="playAudio('A')" class="w-12 h-12 bg-rose-500 rounded-full text-white flex items-center justify-center hover:bg-rose-600 shadow-md transition transform active:scale-95">
-                        <i class="fas fa-play" id="iconA"></i>
-                    </button>
-                    <div class="flex-1">
-                        <div class="h-2 bg-gray-200 rounded-full overflow-hidden">
-                            <div id="progressA" class="audio-progress-bar h-full bg-rose-400 w-0"></div>
-                        </div>
-                    </div>
-                    <div class="text-sm font-bold text-gray-500">
-                        Còn lại: <span id="countA" class="text-rose-600">2</span> lượt
-                    </div>
-                </div>
-
-                <div class="space-y-6 pl-2">
-                    <!-- Q1 -->
-                    <div>
-                        <span class="font-bold mr-2 text-rose-500">1.</span>
-                        <div class="grid grid-cols-2 gap-2 mt-2">
-                            <label class="flex items-center space-x-2"><input type="radio" name="la1"> <span>A. 去美国</span></label>
-                            <label class="flex items-center space-x-2"><input type="radio" name="la1"> <span>B. 当翻译</span></label>
-                            <label class="flex items-center space-x-2"><input type="radio" name="la1"> <span>C. 当老师</span></label>
-                            <label class="flex items-center space-x-2"><input type="radio" name="la1"> <span>D. 没有想过</span></label>
-                        </div>
-                    </div>
-                    <!-- Q2 -->
-                    <div>
-                        <span class="font-bold mr-2 text-rose-500">2.</span>
-                        <div class="grid grid-cols-2 gap-2 mt-2">
-                            <label class="flex items-center space-x-2"><input type="radio" name="la2"> <span>A. 张明 (Zhāngmíng)</span></label>
-                            <label class="flex items-center space-x-2"><input type="radio" name="la2"> <span>B. 张东 (Zhāngdōng)</span></label>
-                            <label class="flex items-center space-x-2"><input type="radio" name="la2"> <span>C. 经理 (jīnglǐ)</span></label>
-                            <label class="flex items-center space-x-2"><input type="radio" name="la2"> <span>D. 王明 (Wángmíng)</span></label>
-                        </div>
-                    </div>
-                    <!-- Q3 -->
-                    <div>
-                        <span class="font-bold mr-2 text-rose-500">3.</span>
-                        <div class="grid grid-cols-1 gap-2 mt-2">
-                            <label class="flex items-center space-x-2"><input type="radio" name="la3"> <span>A. 去看京剧 (Đi xem kinh kịch)</span></label>
-                            <label class="flex items-center space-x-2"><input type="radio" name="la3"> <span>B. 问山本去不去看京剧 (Hỏi Yamamoto có đi không)</span></label>
-                            <label class="flex items-center space-x-2"><input type="radio" name="la3"> <span>C. 问山本喜欢不喜欢京剧 (Hỏi Yamamoto có thích không)</span></label>
-                            <label class="flex items-center space-x-2"><input type="radio" name="la3"> <span>D. 让麦克不要去看京剧 (Bảo Mike đừng đi)</span></label>
-                        </div>
-                    </div>
-                    <!-- Q4 -->
-                    <div>
-                        <span class="font-bold mr-2 text-rose-500">4.</span>
-                        <div class="grid grid-cols-1 gap-2 mt-2">
-                            <label class="flex items-center space-x-2"><input type="radio" name="la4"> <span>A. 以前喜欢,现在不喜欢 (Trước thích, giờ không)</span></label>
-                            <label class="flex items-center space-x-2"><input type="radio" name="la4"> <span>B. 以前不喜欢,现在喜欢 (Trước không, giờ thích)</span></label>
-                            <label class="flex items-center space-x-2"><input type="radio" name="la4"> <span>C. 一直很喜欢 (Luôn rất thích)</span></label>
-                            <label class="flex items-center space-x-2"><input type="radio" name="la4"> <span>D. 一直都不喜欢 (Luôn không thích)</span></label>
-                        </div>
-                    </div>
-                    <!-- Q5 -->
-                    <div>
-                        <span class="font-bold mr-2 text-rose-500">5.</span>
-                        <div class="grid grid-cols-1 gap-2 mt-2">
-                            <label class="flex items-center space-x-2"><input type="radio" name="la5"> <span>A. 女的给男的买的 (Nữ mua cho Nam)</span></label>
-                            <label class="flex items-center space-x-2"><input type="radio" name="la5"> <span>B. 男的给女的买的 (Nam mua cho Nữ)</span></label>
-                            <label class="flex items-center space-x-2"><input type="radio" name="la5"> <span>C. 玛丽给女的买的 (Mary mua cho Nữ)</span></label>
-                            <label class="flex items-center space-x-2"><input type="radio" name="la5"> <span>D. 女的给玛丽买的 (Nữ mua cho Mary)</span></label>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Part B -->
-            <div class="bg-blue-50/50 p-6 rounded-2xl border border-blue-100">
-                <div class="flex items-center justify-between mb-4">
-                    <h4 class="font-bold text-gray-800">B. Nghe đoạn hội thoại (Bài 21)</h4>
-                    <span class="text-xs font-bold text-blue-500 bg-blue-100 px-2 py-1 rounded">Chỉ nghe được 2 lần - Không thể dừng</span>
-                </div>
-
-                <!-- Audio Player B -->
-                <div class="bg-white p-4 rounded-xl shadow-sm flex items-center gap-4 mb-6">
-                    <audio id="audioB" preload="metadata">
-                        <source src="https://res.cloudinary.com/dylnm79id/video/upload/v1764250502/%C4%90E%CC%82%CC%80_KIE%CC%82%CC%89M_TRA_CUO%CC%82%CC%81I_KY%CC%80_-_C2_-_PHA%CC%82%CC%80N_B_onsqp0.mp3" type="audio/mpeg">
-                    </audio>
-                    <button id="btnPlayB" onclick="playAudio('B')" class="w-12 h-12 bg-blue-500 rounded-full text-white flex items-center justify-center hover:bg-blue-600 shadow-md transition transform active:scale-95">
-                        <i class="fas fa-play" id="iconB"></i>
-                    </button>
-                    <div class="flex-1">
-                        <div class="h-2 bg-gray-200 rounded-full overflow-hidden">
-                            <div id="progressB" class="audio-progress-bar h-full bg-blue-400 w-0"></div>
-                        </div>
-                    </div>
-                    <div class="text-sm font-bold text-gray-500">
-                        Còn lại: <span id="countB" class="text-blue-600">2</span> lượt
-                    </div>
-                </div>
-                
-                <!-- B.1 -->
-                <div class="mb-6 pl-2">
-                    <p class="font-semibold text-blue-800 mb-2">Đoạn 1:</p>
-                    <div class="space-y-2">
-                        <div class="flex justify-between items-center border-b border-dashed border-gray-200 py-1">
-                            <span>1. 玛丽每天七点起床。</span>
-                            <div class="space-x-4"><label>✓ <input type="radio" name="lb1_1" value="T"></label> <label>✗ <input type="radio" name="lb1_1" value="F"></label></div>
-                        </div>
-                        <div class="flex justify-between items-center border-b border-dashed border-gray-200 py-1">
-                            <span>2. 玛丽每天七点半来教室。</span>
-                            <div class="space-x-4"><label>✓ <input type="radio" name="lb1_2" value="T"></label> <label>✗ <input type="radio" name="lb1_2" value="F"></label></div>
-                        </div>
-                        <div class="flex justify-between items-center border-b border-dashed border-gray-200 py-1">
-                            <span>3. 玛丽每天早上锻炼身体。</span>
-                            <div class="space-x-4"><label>✓ <input type="radio" name="lb1_3" value="T"></label> <label>✗ <input type="radio" name="lb1_3" value="F"></label></div>
-                        </div>
-                        <div class="flex justify-between items-center border-b border-dashed border-gray-200 py-1">
-                            <span>4. 玛丽晚上十二点半睡觉。</span>
-                            <div class="space-x-4"><label>✓ <input type="radio" name="lb1_4" value="T"></label> <label>✗ <input type="radio" name="lb1_4" value="F"></label></div>
-                        </div>
-                        <div class="flex justify-between items-center border-b border-dashed border-gray-200 py-1">
-                            <span>5. 麦克每天八点一刻起床。</span>
-                            <div class="space-x-4"><label>✓ <input type="radio" name="lb1_5" value="T"></label> <label>✗ <input type="radio" name="lb1_5" value="F"></label></div>
-                        </div>
-                        <div class="flex justify-between items-center border-b border-dashed border-gray-200 py-1">
-                            <span>6. 麦克每天早上不吃早饭。</span>
-                            <div class="space-x-4"><label>✓ <input type="radio" name="lb1_6" value="T"></label> <label>✗ <input type="radio" name="lb1_6" value="F"></label></div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- B.2 -->
-                <div class="pl-2">
-                    <p class="font-semibold text-blue-800 mb-2">Đoạn 2:</p>
-                    <div class="space-y-2">
-                        <div class="flex justify-between items-center border-b border-dashed border-gray-200 py-1">
-                            <span>1. 玛丽坐十二点半的飞机去上海。</span>
-                            <div class="space-x-4"><label>✓ <input type="radio" name="lb2_1" value="T"></label> <label>✗ <input type="radio" name="lb2_1" value="F"></label></div>
-                        </div>
-                        <div class="flex justify-between items-center border-b border-dashed border-gray-200 py-1">
-                            <span>2. 现在九点一刻。</span>
-                            <div class="space-x-4"><label>✓ <input type="radio" name="lb2_2" value="T"></label> <label>✗ <input type="radio" name="lb2_2" value="F"></label></div>
-                        </div>
-                        <div class="flex justify-between items-center border-b border-dashed border-gray-200 py-1">
-                            <span>3. 玛丽准备差一刻九点出发。</span>
-                            <div class="space-x-4"><label>✓ <input type="radio" name="lb2_3" value="T"></label> <label>✗ <input type="radio" name="lb2_3" value="F"></label></div>
-                        </div>
-                        <div class="flex justify-between items-center border-b border-dashed border-gray-200 py-1">
-                            <span>4. 男的觉得应该十点出发。</span>
-                            <div class="space-x-4"><label>✓ <input type="radio" name="lb2_4" value="T"></label> <label>✗ <input type="radio" name="lb2_4" value="F"></label></div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </section>
-
-        <!-- Submit Button -->
-        <div class="text-center pt-8 pb-12">
-            <button onclick="submitExam()" class="bg-gradient-to-r from-rose-400 to-pink-500 hover:from-rose-500 hover:to-pink-600 text-white font-bold py-4 px-12 rounded-full shadow-lg transform hover:scale-105 transition duration-200 text-lg flex items-center gap-2 mx-auto">
-                <span>Nộp Bài (交卷)</span>
-                <i class="fas fa-paper-plane"></i>
-            </button>
-        </div>
-
-    </main>
+    <!-- Auto-save Notification -->
+    <div id="saveNotification" class="save-notification">
+        <i class="fas fa-save"></i>
+        <span>Đang lưu dữ liệu...</span>
+    </div>
 
     <!-- Modal Result -->
     <div id="resultModal" class="fixed inset-0 bg-black/50 hidden z-50 flex items-center justify-center p-4 backdrop-blur-sm">
@@ -492,40 +621,406 @@
                 </div>
             </div>
 
-            <div class="text-center">
-                <button onclick="location.reload()" class="bg-gray-100 hover:bg-gray-200 text-gray-600 font-bold py-3 px-8 rounded-full transition duration-200">
+            <div class="text-center space-y-3">
+                <button onclick="location.reload()" class="bg-gray-100 hover:bg-gray-200 text-gray-600 font-bold py-3 px-8 rounded-full transition duration-200 w-full">
                     Làm lại bài
+                </button>
+                <button onclick="logout()" class="text-sm text-rose-500 hover:text-rose-600 underline">
+                    <i class="fas fa-sign-out-alt mr-1"></i> Đăng xuất và làm bài mới
                 </button>
             </div>
         </div>
     </div>
 
     <script>
-        // 1. Timer Logic
+        // Firebase Configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyDcsk8X1rFd1qMd1W9510-ZKFlSfZUUKV8",
+            authDomain: "lop-hoc-tuong-tac-26351.firebaseapp.com",
+            databaseURL: "https://lop-hoc-tuong-tac-26351-default-rtdb.asia-southeast1.firebasedatabase.app",
+            projectId: "lop-hoc-tuong-tac-26351",
+            storageBucket: "lop-hoc-tuong-tac-26351.firebasestorage.app",
+            messagingSenderId: "854589974779",
+            appId: "1:854589974779:web:038a2f3d54cb443a6f685e"
+        };
+
+        // Initialize Firebase
+        firebase.initializeApp(firebaseConfig);
+        const database = firebase.database();
+
+        // Student information
+        let currentStudent = null;
+
+        // Check if student is already logged in
+        function checkLogin() {
+            const savedStudent = localStorage.getItem('currentStudent');
+            
+            if (savedStudent) {
+                try {
+                    currentStudent = JSON.parse(savedStudent);
+                    startExamSession();
+                    return true;
+                } catch (e) {
+                    console.error('Lỗi khi đọc thông tin học viên:', e);
+                }
+            }
+            
+            // Show login modal if not logged in
+            document.getElementById('loginModal').classList.remove('hidden');
+            return false;
+        }
+
+        // Handle login form submission
+        document.getElementById('loginForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const studentName = document.getElementById('studentName').value.trim();
+            const studentId = document.getElementById('studentId').value.trim();
+            const studentClass = document.getElementById('studentClass').value;
+            
+            if (!studentName || !studentId) {
+                alert('Vui lòng nhập đầy đủ họ tên và mã số học viên');
+                return;
+            }
+            
+            // Create student object
+            currentStudent = {
+                id: studentId,
+                name: studentName,
+                class: studentClass,
+                loginTime: new Date().toISOString(),
+                sessionId: `exam_${studentId}_${Date.now()}_${Math.floor(Math.random() * 10000)}`
+            };
+            
+            // Save to localStorage
+            localStorage.setItem('currentStudent', JSON.stringify(currentStudent));
+            
+            // Start exam session
+            startExamSession();
+        });
+
+        // Start exam session
+        function startExamSession() {
+            // Hide login modal
+            document.getElementById('loginModal').classList.add('hidden');
+            
+            // Show main content
+            document.getElementById('mainContent').classList.remove('hidden');
+            
+            // Display student info
+            document.getElementById('displayName').textContent = `${currentStudent.name} (${currentStudent.id}) - ${currentStudent.class}`;
+            
+            // Initialize exam
+            initExam();
+        }
+
+        // Logout function
+        function logout() {
+            if (confirm('Bạn có chắc chắn muốn đăng xuất? Dữ liệu bài làm sẽ bị xóa.')) {
+                localStorage.removeItem('currentStudent');
+                location.reload();
+            }
+        }
+
+        // Global variables
         let timeRemaining = 60 * 60; // 60 minutes
-        const timerDisplay = document.getElementById('timer');
-        
-        const timerInterval = setInterval(() => {
-            const minutes = Math.floor(timeRemaining / 60);
-            const seconds = timeRemaining % 60;
-            
-            timerDisplay.textContent = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
-            
-            if (timeRemaining <= 300) { 
-                timerDisplay.classList.add('bg-red-100', 'text-red-600', 'animate-pulse');
-                timerDisplay.classList.remove('bg-rose-50', 'text-rose-500');
-            }
-
-            if (timeRemaining <= 0) {
-                clearInterval(timerInterval);
-                submitExam();
-            }
-            timeRemaining--;
-        }, 1000);
-
-        // 2. Specific Pinyin Logic
+        let timerInterval;
         const pinyinLogs = [];
+        const audioStatus = {
+            A: { playsLeft: 2, isPlaying: false },
+            B: { playsLeft: 2, isPlaying: false }
+        };
 
+        // Initialize exam
+        function initExam() {
+            if (!currentStudent) return;
+            
+            const SAVE_PATH = `exam_progress/${currentStudent.id}/${currentStudent.sessionId}`;
+            
+            // 1. Initialize Timer
+            const timerDisplay = document.getElementById('timer');
+            
+            timerInterval = setInterval(() => {
+                const minutes = Math.floor(timeRemaining / 60);
+                const seconds = timeRemaining % 60;
+                
+                timerDisplay.textContent = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+                
+                if (timeRemaining <= 300) { 
+                    timerDisplay.classList.add('bg-red-100', 'text-red-600', 'animate-pulse');
+                    timerDisplay.classList.remove('bg-rose-50', 'text-rose-500');
+                }
+
+                if (timeRemaining <= 0) {
+                    clearInterval(timerInterval);
+                    submitExam();
+                }
+                timeRemaining--;
+                
+                // Auto-save timer every 30 seconds
+                if (timeRemaining % 30 === 0) {
+                    saveProgress(SAVE_PATH);
+                }
+            }, 1000);
+
+            // 2. Load saved progress
+            loadProgress(SAVE_PATH);
+            
+            // 3. Set up auto-save
+            setupAutoSave(SAVE_PATH);
+            
+            // 4. Set up audio progress bars
+            ['A', 'B'].forEach(id => {
+                const audio = document.getElementById('audio' + id);
+                const bar = document.getElementById('progress' + id);
+                
+                audio.addEventListener('timeupdate', () => {
+                    if (audio.duration) {
+                        const percent = (audio.currentTime / audio.duration) * 100;
+                        bar.style.width = percent + '%';
+                    }
+                });
+            });
+        }
+
+        // Auto-save functionality
+        let saveTimeout;
+        let lastSaveTime = 0;
+        const MIN_SAVE_INTERVAL = 2000;
+
+        function showSaveNotification(isError = false) {
+            const notification = document.getElementById('saveNotification');
+            const statusDiv = document.getElementById('saveStatus');
+            
+            if (isError) {
+                notification.className = 'save-notification error show';
+                notification.innerHTML = '<i class="fas fa-exclamation-triangle"></i><span>Lỗi lưu dữ liệu</span>';
+                statusDiv.className = 'text-xs text-red-600 bg-red-50 px-2 py-1 rounded';
+                statusDiv.innerHTML = '<i class="fas fa-exclamation-circle mr-1"></i> Lỗi';
+            } else {
+                notification.className = 'save-notification show';
+                notification.innerHTML = '<i class="fas fa-save"></i><span>Đã lưu dữ liệu</span>';
+                statusDiv.className = 'text-xs text-green-600 bg-green-50 px-2 py-1 rounded';
+                statusDiv.innerHTML = '<i class="fas fa-save mr-1"></i> Đã lưu';
+                statusDiv.classList.remove('hidden');
+                
+                // Hide status after 3 seconds
+                setTimeout(() => {
+                    statusDiv.classList.add('hidden');
+                }, 3000);
+            }
+            
+            // Hide notification after 2 seconds
+            setTimeout(() => {
+                notification.classList.remove('show');
+            }, 2000);
+        }
+
+        // Collect all answer data
+        function collectAllAnswers() {
+            const answers = {};
+            
+            // Collect all input elements with save-data class
+            const inputs = document.querySelectorAll('.save-data');
+            
+            inputs.forEach(input => {
+                const questionId = input.getAttribute('data-question');
+                
+                if (input.type === 'radio') {
+                    if (input.checked) {
+                        answers[questionId] = input.value;
+                    }
+                } else if (input.tagName === 'SELECT') {
+                    answers[questionId] = input.value;
+                } else if (input.tagName === 'TEXTAREA') {
+                    answers[questionId] = input.value.trim();
+                }
+            });
+            
+            // Save audio play counts
+            answers.audioPlays_A = audioStatus.A.playsLeft;
+            answers.audioPlays_B = audioStatus.B.playsLeft;
+            
+            // Save timer
+            answers.timeRemaining = timeRemaining;
+            
+            // Save pinyin logs
+            answers.pinyinLogs = pinyinLogs;
+            
+            // Save student info
+            answers.studentInfo = currentStudent;
+            
+            // Save timestamp
+            answers.lastSaved = new Date().toISOString();
+            
+            return answers;
+        }
+
+        // Save progress to Firebase
+        function saveProgress(savePath) {
+            if (!currentStudent) return;
+            
+            const now = Date.now();
+            
+            // Throttle saves to prevent too frequent updates
+            if (now - lastSaveTime < MIN_SAVE_INTERVAL) {
+                clearTimeout(saveTimeout);
+                saveTimeout = setTimeout(() => saveProgress(savePath), MIN_SAVE_INTERVAL);
+                return;
+            }
+            
+            const answers = collectAllAnswers();
+            
+            database.ref(savePath).set(answers)
+                .then(() => {
+                    lastSaveTime = now;
+                    showSaveNotification(false);
+                })
+                .catch(error => {
+                    console.error('Lỗi lưu dữ liệu:', error);
+                    showSaveNotification(true);
+                });
+        }
+
+        // Load progress from Firebase
+        function loadProgress(savePath) {
+            database.ref(savePath).once('value')
+                .then(snapshot => {
+                    const data = snapshot.val();
+                    
+                    if (!data) {
+                        console.log('Không có dữ liệu đã lưu');
+                        return;
+                    }
+                    
+                    console.log('Đang khôi phục dữ liệu...', data);
+                    
+                    // Restore timer if exists
+                    if (data.timeRemaining) {
+                        timeRemaining = data.timeRemaining;
+                        const minutes = Math.floor(timeRemaining / 60);
+                        const seconds = timeRemaining % 60;
+                        const timerDisplay = document.getElementById('timer');
+                        timerDisplay.textContent = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+                    }
+                    
+                    // Restore audio play counts
+                    if (data.audioPlays_A !== undefined) {
+                        audioStatus.A.playsLeft = data.audioPlays_A;
+                        document.getElementById('countA').textContent = data.audioPlays_A;
+                        
+                        if (data.audioPlays_A <= 0) {
+                            const btn = document.getElementById('btnPlayA');
+                            btn.classList.add('disabled-btn', 'bg-gray-400');
+                            btn.classList.remove('bg-rose-500', 'hover:bg-rose-600');
+                            btn.innerHTML = '<i class="fas fa-ban"></i>';
+                        }
+                    }
+                    
+                    if (data.audioPlays_B !== undefined) {
+                        audioStatus.B.playsLeft = data.audioPlays_B;
+                        document.getElementById('countB').textContent = data.audioPlays_B;
+                        
+                        if (data.audioPlays_B <= 0) {
+                            const btn = document.getElementById('btnPlayB');
+                            btn.classList.add('disabled-btn', 'bg-gray-400');
+                            btn.classList.remove('bg-blue-500', 'hover:bg-blue-600');
+                            btn.innerHTML = '<i class="fas fa-ban"></i>';
+                        }
+                    }
+                    
+                    // Restore pinyin logs
+                    if (data.pinyinLogs) {
+                        pinyinLogs.length = 0; // Clear array
+                        data.pinyinLogs.forEach(log => pinyinLogs.push(log));
+                    }
+                    
+                    // Restore all form inputs
+                    Object.keys(data).forEach(key => {
+                        if (key.startsWith('p1-') || key.startsWith('r') || key.startsWith('la') || key.startsWith('lb')) {
+                            const value = data[key];
+                            
+                            if (value) {
+                                // Handle radio buttons
+                                const radioInputs = document.querySelectorAll(`input[data-question="${key}"][value="${value}"]`);
+                                if (radioInputs.length > 0) {
+                                    radioInputs[0].checked = true;
+                                }
+                                
+                                // Handle select dropdowns
+                                const selectInputs = document.querySelectorAll(`select[data-question="${key}"]`);
+                                if (selectInputs.length > 0) {
+                                    selectInputs[0].value = value;
+                                }
+                                
+                                // Handle textareas
+                                const textareas = document.querySelectorAll(`textarea[data-question="${key}"]`);
+                                if (textareas.length > 0) {
+                                    textareas[0].value = value;
+                                }
+                            }
+                        }
+                    });
+                    
+                    console.log('Khôi phục dữ liệu thành công!');
+                    
+                    // Show restore notification
+                    const notification = document.createElement('div');
+                    notification.className = 'save-notification show';
+                    notification.innerHTML = '<i class="fas fa-history"></i><span>Đã khôi phục dữ liệu trước đó</span>';
+                    document.body.appendChild(notification);
+                    
+                    setTimeout(() => {
+                        notification.classList.remove('show');
+                        setTimeout(() => notification.remove(), 300);
+                    }, 3000);
+                })
+                .catch(error => {
+                    console.error('Lỗi tải dữ liệu:', error);
+                });
+        }
+
+        // Set up auto-save listeners
+        function setupAutoSave(savePath) {
+            // Listen to all input changes
+            document.addEventListener('input', (e) => {
+                if (e.target.classList.contains('save-data')) {
+                    clearTimeout(saveTimeout);
+                    saveTimeout = setTimeout(() => saveProgress(savePath), 1000);
+                }
+            });
+            
+            // Listen to change events for select elements
+            document.addEventListener('change', (e) => {
+                if (e.target.classList.contains('save-data')) {
+                    clearTimeout(saveTimeout);
+                    saveTimeout = setTimeout(() => saveProgress(savePath), 1000);
+                }
+            });
+            
+            // Save before page unload
+            window.addEventListener('beforeunload', (e) => {
+                if (!currentStudent) return;
+                
+                // Save synchronously if possible
+                const answers = collectAllAnswers();
+                const savePath = `exam_progress/${currentStudent.id}/${currentStudent.sessionId}`;
+                
+                navigator.sendBeacon ? 
+                    navigator.sendBeacon(`https://lop-hoc-tuong-tac-26351-default-rtdb.asia-southeast1.firebasedatabase.app/${savePath}.json`, JSON.stringify(answers)) :
+                    saveProgress(savePath);
+            });
+            
+            // Also save on visibility change (tab switch)
+            document.addEventListener('visibilitychange', () => {
+                if (document.hidden && currentStudent) {
+                    const savePath = `exam_progress/${currentStudent.id}/${currentStudent.sessionId}`;
+                    saveProgress(savePath);
+                }
+            });
+        }
+
+        // Pinyin Logic
         function toggleLocalPinyin(containerId, logName) {
             const container = document.getElementById(containerId);
             const isRevealed = container.classList.contains('reveal-pinyin');
@@ -536,24 +1031,26 @@
             if (!isRevealed) {
                 container.classList.add('reveal-pinyin');
                 
-                // Add log if not already logged for this specific item (optional, or log every click)
-                // Here we log every "Open" action
+                // Add log if not already logged for this specific item
                 pinyinLogs.push({
                     time: timestamp,
                     section: logName,
-                    action: "BẬT"
+                    action: "BẬT",
+                    studentId: currentStudent.id,
+                    studentName: currentStudent.name
                 });
+                
+                // Save immediately when pinyin is revealed
+                if (currentStudent) {
+                    const savePath = `exam_progress/${currentStudent.id}/${currentStudent.sessionId}`;
+                    saveProgress(savePath);
+                }
             } else {
                 container.classList.remove('reveal-pinyin');
             }
         }
 
-        // 3. Audio Player Logic (Strict - No Pause)
-        const audioStatus = {
-            A: { playsLeft: 2, isPlaying: false },
-            B: { playsLeft: 2, isPlaying: false }
-        };
-
+        // Audio Player Logic (Strict - No Pause)
         function playAudio(id) {
             const audio = document.getElementById('audio' + id);
             const btn = document.getElementById('btnPlay' + id);
@@ -581,6 +1078,12 @@
                 // Decrement count immediately on start
                 status.playsLeft--;
                 countDisplay.textContent = status.playsLeft;
+                
+                // Save progress after audio play
+                if (currentStudent) {
+                    const savePath = `exam_progress/${currentStudent.id}/${currentStudent.sessionId}`;
+                    saveProgress(savePath);
+                }
             }).catch(e => console.log("Audio play error", e));
 
             // Handle end
@@ -598,28 +1101,49 @@
             };
         }
 
-        // Update Progress Bars (Visual Only - No Seeking)
-        ['A', 'B'].forEach(id => {
-            const audio = document.getElementById('audio' + id);
-            const bar = document.getElementById('progress' + id);
-            
-            audio.addEventListener('timeupdate', () => {
-                if (audio.duration) {
-                    const percent = (audio.currentTime / audio.duration) * 100;
-                    bar.style.width = percent + '%';
-                }
-            });
-        });
-
-
-        // 4. Submit Logic
+        // Submit Logic
         function submitExam() {
+            if (!currentStudent) return;
+            
             clearInterval(timerInterval);
+            
+            const SAVE_PATH = `exam_progress/${currentStudent.id}/${currentStudent.sessionId}`;
+            const FINAL_SUBMISSIONS = `exam_submissions/${currentStudent.id}/${currentStudent.sessionId}`;
+            
+            // Collect final answers
+            const finalAnswers = collectAllAnswers();
+            finalAnswers.submittedAt = new Date().toISOString();
+            finalAnswers.status = 'submitted';
+            
+            // Save to final submissions
+            database.ref(FINAL_SUBMISSIONS).set(finalAnswers)
+                .then(() => {
+                    console.log('Bài thi đã được lưu vào mục nộp bài');
+                    
+                    // Remove from progress (optional)
+                    database.ref(SAVE_PATH).remove()
+                        .then(() => {
+                            console.log('Đã xóa dữ liệu đang làm dở');
+                        })
+                        .catch(error => {
+                            console.error('Lỗi xóa dữ liệu:', error);
+                        });
+                    
+                    showResultModal(finalAnswers);
+                })
+                .catch(error => {
+                    console.error('Lỗi khi nộp bài:', error);
+                    alert('Có lỗi xảy ra khi nộp bài. Vui lòng thử lại.');
+                });
+        }
+
+        // Show result modal
+        function showResultModal(submissionData) {
             const modal = document.getElementById('resultModal');
             const cheatLogDiv = document.getElementById('cheatLog');
             
-            if (pinyinLogs.length > 0) {
-                cheatLogDiv.innerHTML = pinyinLogs.map(log => 
+            if (submissionData.pinyinLogs && submissionData.pinyinLogs.length > 0) {
+                cheatLogDiv.innerHTML = submissionData.pinyinLogs.map(log => 
                     `<div class="flex justify-between items-center border-b border-amber-100 last:border-0 pb-2">
                         <span class="font-medium text-amber-900">${log.section}</span>
                         <div class="text-right">
@@ -639,6 +1163,11 @@
                 document.getElementById('modalContent').classList.add('scale-100');
             }, 10);
         }
+
+        // Initialize when page loads
+        document.addEventListener('DOMContentLoaded', () => {
+            checkLogin();
+        });
     </script>
 </body>
 </html>
