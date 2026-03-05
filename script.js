@@ -297,8 +297,15 @@ function handleMCQAnswer(btn, selectedIndex, correctIndex, explanation) {
 }
 
 function renderWordOrdering(q) {
-    // q.words contains the scrambled array
-    // q.correctOrder contains the correct string or array
+    // q.words contains the word array
+    // q.correctAnswer contains the correct string
+
+    // Shuffle words using Fisher-Yates algorithm
+    const shuffledWords = [...q.words];
+    for (let i = shuffledWords.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [shuffledWords[i], shuffledWords[j]] = [shuffledWords[j], shuffledWords[i]];
+    }
 
     const dropZone = document.createElement('div');
     dropZone.className = 'drop-zone';
@@ -310,7 +317,7 @@ function renderWordOrdering(q) {
     // State for this question
     let currentOrder = [];
 
-    q.words.forEach((word, index) => {
+    shuffledWords.forEach((word, index) => {
         const chip = document.createElement('button');
         chip.className = 'word-chip';
         chip.innerHTML = withPinyin(word);
