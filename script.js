@@ -1,4 +1,3 @@
-// App State
 const state = {
     currentView: 'view-home',
     currentLessonId: null,
@@ -7,7 +6,8 @@ const state = {
     questions: [],
     currentQuestionIndex: 0,
     score: 0,
-    isDarkMode: false
+    isDarkMode: false,
+    showPinyin: true
 };
 
 // DOM Elements
@@ -22,6 +22,7 @@ const views = {
 const elements = {
     btnBack: document.getElementById('btn-back'),
     btnTheme: document.getElementById('btn-theme'),
+    btnPinyin: document.getElementById('btn-pinyin'),
     lessonList: document.getElementById('lesson-list'),
     grammarPointsList: document.getElementById('grammar-points-list'),
     lessonTitle: document.getElementById('lesson-title'),
@@ -50,6 +51,12 @@ function init() {
         toggleTheme();
     }
 
+    const savedPinyin = localStorage.getItem('hsk2-pinyin');
+    if (savedPinyin === 'false') {
+        state.showPinyin = false;
+        elements.btnPinyin.style.opacity = '0.5';
+    }
+
     renderHome();
     setupEventListeners();
 }
@@ -58,6 +65,7 @@ function init() {
 function setupEventListeners() {
     elements.btnBack.addEventListener('click', handleBack);
     elements.btnTheme.addEventListener('click', toggleTheme);
+    elements.btnPinyin.addEventListener('click', togglePinyin);
 
     elements.exTypeCards.forEach(card => {
         card.addEventListener('click', () => {
@@ -110,6 +118,35 @@ function toggleTheme() {
         elements.btnTheme.innerHTML = '<i class="fas fa-moon"></i>';
         localStorage.setItem('hsk2-theme', 'light');
     }
+}
+
+function togglePinyin() {
+    state.showPinyin = !state.showPinyin;
+    localStorage.setItem('hsk2-pinyin', state.showPinyin);
+    if (state.showPinyin) {
+        elements.btnPinyin.style.opacity = '1';
+    } else {
+        elements.btnPinyin.style.opacity = '0.5';
+    }
+
+    // Re-render currently active exercise
+    if (state.currentView === 'view-exercise' && state.questions.length > 0) {
+        renderQuestion();
+    }
+}
+
+function withPinyin(text) {
+    if (!state.showPinyin || typeof pinyinPro === 'undefined') return text;
+    let result = '';
+    for (const char of text) {
+        if (/[\u4e00-\u9fa5]/.test(char)) {
+            const pySymbol = pinyinPro.pinyin(char);
+            result += `<ruby>${char}<rt>${pySymbol}</rt></ruby>`;
+        } else {
+            result += char;
+        }
+    }
+    return result;
 }
 
 // View Rendering
@@ -192,7 +229,7 @@ function renderQuestion() {
     // Render Question Text
     const qText = document.createElement('div');
     qText.className = 'question-text';
-    qText.textContent = q.question;
+    qText.innerHTML = withPinyin(q.question);
     elements.exerciseContent.appendChild(qText);
 
     if (q.vietnamese) {
@@ -229,7 +266,7 @@ function renderMultipleChoice(q) {
     optionsWithIndices.forEach((optData, newIndex) => {
         const btn = document.createElement('button');
         btn.className = 'option-btn';
-        btn.innerHTML = `<span>${String.fromCharCode(65 + newIndex)}. ${optData.text}</span>`;
+        btn.innerHTML = `<span>${String.fromCharCode(65 + newIndex)}. ${withPinyin(optData.text)}</span>`;
 
         btn.addEventListener('click', () => handleMCQAnswer(btn, newIndex, newCorrectIndex, q.explanation));
         grid.appendChild(btn);
@@ -276,7 +313,7 @@ function renderWordOrdering(q) {
     q.words.forEach((word, index) => {
         const chip = document.createElement('button');
         chip.className = 'word-chip';
-        chip.textContent = word;
+        chip.innerHTML = withPinyin(word);
         chip.dataset.index = index;
 
         chip.addEventListener('click', () => {
@@ -287,7 +324,7 @@ function renderWordOrdering(q) {
 
                 const dropChip = document.createElement('button');
                 dropChip.className = 'word-chip';
-                dropChip.textContent = word;
+                dropChip.innerHTML = withPinyin(word);
                 dropChip.addEventListener('click', () => {
                     // Remove from drop zone
                     currentOrder = currentOrder.filter(item => item.index !== index);

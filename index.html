@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="vi">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -8,12 +9,14 @@
     <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap"
+        rel="stylesheet">
     <!-- FontAwesome for Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <!-- Custom CSS -->
     <link rel="stylesheet" href="style.css">
 </head>
+
 <body>
     <div class="app-background">
         <div class="blob blob-1"></div>
@@ -23,9 +26,12 @@
 
     <div class="app-container glass-panel">
         <header class="app-header">
-            <button id="btn-back" class="icon-btn hidden" aria-label="Quay lại"><i class="fas fa-chevron-left"></i></button>
+            <button id="btn-back" class="icon-btn hidden" aria-label="Quay lại"><i
+                    class="fas fa-chevron-left"></i></button>
             <h1 class="app-title">HSK-2 Grammar</h1>
-            <div class="theme-toggle">
+            <div class="theme-toggle" style="display: flex; gap: 8px;">
+                <button id="btn-pinyin" class="icon-btn" aria-label="Bật/Tắt Pinyin" title="Bật/Tắt Pinyin"><i
+                        class="fas fa-language"></i></button>
                 <button id="btn-theme" class="icon-btn" aria-label="Đổi giao diện"><i class="fas fa-moon"></i></button>
             </div>
         </header>
@@ -96,7 +102,8 @@
                         <h3 id="feedback-title">Chính xác!</h3>
                         <p id="feedback-desc">Giải thích (nếu có)</p>
                     </div>
-                    <button id="btn-next-question" class="btn btn-primary">Câu tiếp theo <i class="fas fa-arrow-right"></i></button>
+                    <button id="btn-next-question" class="btn btn-primary">Câu tiếp theo <i
+                            class="fas fa-arrow-right"></i></button>
                 </div>
             </section>
 
@@ -110,17 +117,20 @@
                     <span id="final-score">10</span>/10
                 </div>
                 <p id="result-message" class="mt-4">Tuyệt vời! Bạn đã nắm chắc điểm ngữ pháp này.</p>
-                
+
                 <div class="action-buttons mt-8">
                     <button id="btn-retry" class="btn btn-outline"><i class="fas fa-redo"></i> Thử lại</button>
-                    <button id="btn-back-home" class="btn btn-primary"><i class="fas fa-home"></i> Trở về trang chủ</button>
+                    <button id="btn-back-home" class="btn btn-primary"><i class="fas fa-home"></i> Trở về trang
+                        chủ</button>
                 </div>
             </section>
         </main>
     </div>
 
     <!-- Data and Scripts -->
+    <script src="https://unpkg.com/pinyin-pro"></script>
     <script src="data.js"></script>
     <script src="script.js"></script>
 </body>
+
 </html>
