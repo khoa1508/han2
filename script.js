@@ -226,23 +226,29 @@ function renderQuestion() {
     elements.scoreCounter.textContent = `Điểm: ${state.score}`;
     elements.progressBar.style.width = `${((state.currentQuestionIndex) / state.questions.length) * 100}%`;
 
-    // Render Question Text
-    const qText = document.createElement('div');
-    qText.className = 'question-text';
-    qText.innerHTML = withPinyin(q.question);
-    elements.exerciseContent.appendChild(qText);
-
-    if (q.vietnamese) {
-        const viText = document.createElement('p');
-        viText.className = 'text-center text-muted mb-4';
-        viText.style.marginBottom = '24px';
-        viText.textContent = q.vietnamese;
-        elements.exerciseContent.appendChild(viText);
-    }
-
     if (state.currentExerciseType === 'multiple-choice') {
+        // Render Question Text (only for multiple-choice)
+        const qText = document.createElement('div');
+        qText.className = 'question-text';
+        qText.innerHTML = withPinyin(q.question);
+        elements.exerciseContent.appendChild(qText);
+
+        if (q.vietnamese) {
+            const viText = document.createElement('p');
+            viText.className = 'text-center text-muted mb-4';
+            viText.style.marginBottom = '24px';
+            viText.textContent = q.vietnamese;
+            elements.exerciseContent.appendChild(viText);
+        }
+
         renderMultipleChoice(q);
     } else {
+        // Word-ordering: show instruction text
+        const qText = document.createElement('div');
+        qText.className = 'question-text';
+        qText.innerHTML = 'Sắp xếp các từ thành câu hoàn chỉnh:';
+        elements.exerciseContent.appendChild(qText);
+
         renderWordOrdering(q);
     }
 }
